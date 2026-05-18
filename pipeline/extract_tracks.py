@@ -127,10 +127,20 @@ def extract_game(game: Game, force: bool = False) -> dict:
             eprint(f"[extract] {game.game_id} {angle}: downloading video")
             s3_cp(src, str(local))
 
+            # offset=0.0 on purpose: P1 emits per-angle INDEPENDENT tracks
+            # keyed by each video's own frame index / timestamp. v1's
+            # offset/sync logic is a P2 fusion concern, not P1. With
+            # offset=0 v1's frame_to_timestamp(apply_offset=True) ==
+            # raw video time, and FrameData.timestamp == adjusted.
             vp = VideoProcessor(str(local), offset=0.0,
                                 angle=ANGLE_TO_DETECTOR[angle])
             det = detector_for(angle)
+            # Snapshot immutable video metadata up front (survives
+            # release() too, but read it before we ever release).
             fps = float(vp.fps)
+            v_total_frames = int(vp.total_frames)
+            v_width = int(vp.width)
+            v_height = int(vp.height)
             windows = []
             n_frames_angle = 0
 
@@ -176,9 +186,9 @@ def extract_game(game: Game, force: bool = False) -> dict:
 
             per_angle_meta[angle] = {
                 "fps": fps,
-                "total_frames": int(vp.total_frames),
-                "width": int(vp.width),
-                "height": int(vp.height),
+                "total_frames": v_total_frames,
+                "width": v_width,
+                "height": v_height,
                 "detector": ANGLE_TO_DETECTOR[angle],
                 "emitted_frames": n_frames_angle,
                 "shot_windows": windows,

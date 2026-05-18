@@ -172,9 +172,14 @@ if awk -v p="$PROJECTED" -v t="$AWS_MAX_USD_TOTAL" 'BEGIN{exit !(p>t)}'; then
   exit 1
 fi
 
-# ---- 7. Stage pipeline/ to S3 ---------------------------------------------
+# ---- 7. Stage pipeline/ + manifest to S3 ----------------------------------
+# common.py resolves the manifest at <repo>/data/games_manifest.json
+# (REPO_ROOT = pipeline/..). The tarball MUST carry data/ too or run_batch
+# fails with FileNotFoundError before any extraction.
 STAGE_TGZ="/tmp/${RUN_ID}_pipeline.tgz"
-tar -czf "$STAGE_TGZ" -C "$REPO_ROOT" pipeline
+[[ -f "$REPO_ROOT/data/games_manifest.json" ]] || {
+  echo "FATAL: data/games_manifest.json missing; cannot stage" >&2; exit 1; }
+tar -czf "$STAGE_TGZ" -C "$REPO_ROOT" pipeline data/games_manifest.json
 S3_CODE_TARBALL="$S3_WORK_PREFIX/jobs/$RUN_ID/pipeline.tgz"
 echo "[stage] uploading pipeline/ -> $S3_CODE_TARBALL"
 awsbin s3 cp "$STAGE_TGZ" "$S3_CODE_TARBALL"

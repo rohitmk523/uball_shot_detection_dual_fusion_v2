@@ -64,15 +64,38 @@ def _find_bundle_root(extracted: Path) -> Path:
 
 
 def import_v1(bundle_dir: Path):
-    """Put the bundle on sys.path and import the v1 modules we reuse."""
-    bd = str(bundle_dir)
+    """Put the bundle on sys.path and import the REAL v1 modules we reuse,
+    AS-IS. Returns (v1_config, VideoProcessor, EnhancedShotDetector).
+
+    No os.chdir: every v1 path lookup that matters is __file__-relative
+    (config.py uses Path(__file__).parent for INPUT/WEIGHTS/etc., and
+    WeightedFeatureScorer loads weights_config/ via
+    Path(__file__).parent / "weights_config" / ...). Changing the process
+    cwd would be a hidden global side effect with no upside, so we don't.
+    """
+    bd = str(bundle_dir.resolve())
+    if not (bundle_dir / "enhanced_shot_detector.py").exists():
+        raise RuntimeError(
+            f"bundle dir {bd} does not contain enhanced_shot_detector.py"
+        )
     if bd not in sys.path:
         sys.path.insert(0, bd)
-    # Run from the bundle dir so v1's relative weights_config/ lookups work.
-    os.chdir(bundle_dir)
-    import config as v1_config  # noqa: E402
-    from video_processor import VideoProcessor  # noqa: E402
-    from enhanced_shot_detector import EnhancedShotDetector  # noqa: E402
+
+    import importlib
+
+    v1_config = importlib.import_module("config")
+    video_processor = importlib.import_module("video_processor")
+    esd = importlib.import_module("enhanced_shot_detector")
+
+    # Real v1 names — fail loudly here rather than at first use if the
+    # bundle ever drifts from the expected v1 API.
+    try:
+        VideoProcessor = video_processor.VideoProcessor
+        EnhancedShotDetector = esd.EnhancedShotDetector
+    except AttributeError as e:
+        raise RuntimeError(
+            f"frozen bundle does not expose the expected v1 API: {e}"
+        ) from e
     return v1_config, VideoProcessor, EnhancedShotDetector
 
 
