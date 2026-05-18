@@ -46,10 +46,18 @@ done
 # ---- Load .env (gitignored; never echoed) ----------------------------------
 ENV_FILE="$REPO_ROOT/.env"
 [[ -f "$ENV_FILE" ]] || { echo "FATAL: $ENV_FILE not found" >&2; exit 1; }
-set -a
-# shellcheck disable=SC1090
-source <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE")
-set +a
+# macOS ships bash 3.2 where `set -a; source <(...)` silently fails to
+# export. Parse line-by-line and export without eval (value-safe).
+while IFS= read -r _line || [[ -n "$_line" ]]; do
+  case "$_line" in ''|\#*) continue ;; esac
+  [[ "$_line" == *=* ]] || continue
+  _k="${_line%%=*}"
+  [[ "$_k" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+  _v="${_line#*=}"
+  _v="${_v%\"}"; _v="${_v#\"}"; _v="${_v%\'}"; _v="${_v#\'}"
+  export "$_k=$_v"
+done < "$ENV_FILE"
+unset _line _k _v
 
 : "${AWS_DEFAULT_REGION:?set in .env}"
 : "${AWS_MAX_USD_PER_ITERATION:?}"
@@ -92,11 +100,14 @@ fi
 read -r BUDGET_PRICE HARD_CAP_MINUTES WORST_CASE_USD <<EOF
 $(awk -v spot="$SPOT_PRICE" -v floor="$SPOT_FLOOR" \
        -v per="$AWS_MAX_USD_PER_ITERATION" -v od="$ON_DEMAND_PRICE" 'BEGIN {
-  bp = (spot > floor) ? spot : floor;          # never divide by tiny price
-  cap_hours = per / bp;                        # affordable hours at this price
+  bp = (spot > floor) ? spot : floor;          # reported expected price
+  # Size the HARD cap off the on-demand CEILING (= our spot max-price),
+  # NOT the live spot price, so worst-case bill <= per-iteration budget
+  # BY CONSTRUCTION even if spot rises to the ceiling mid-run.
+  cap_hours = per / od;                        # ceiling-priced affordable hrs
   cap_min  = int(cap_hours * 60);              # floor() -> round DOWN
   if (cap_min < 1) cap_min = 0;                # 0 => caller will refuse
-  worst = (cap_min / 60.0) * od;               # priced at on-demand = max
+  worst = (cap_min / 60.0) * od;               # <= per by construction
   printf "%.4f %d %.4f", bp, cap_min, worst;
 }')
 EOF
@@ -149,6 +160,11 @@ PLAN
 if [[ "$HARD_CAP_MINUTES" -lt 1 ]]; then
   echo "REFUSING: computed hard cap is 0 min (per-iteration budget too small" >&2
   echo "          relative to price \$$BUDGET_PRICE/hr)." >&2
+  exit 1
+fi
+if awk -v w="$WORST_CASE_USD" -v per="$AWS_MAX_USD_PER_ITERATION" \
+       'BEGIN{exit !(w>per)}'; then
+  echo "REFUSING: worst-case \$$WORST_CASE_USD exceeds per-iteration cap \$$AWS_MAX_USD_PER_ITERATION." >&2
   exit 1
 fi
 if awk -v p="$PROJECTED" -v t="$AWS_MAX_USD_TOTAL" 'BEGIN{exit !(p>t)}'; then
