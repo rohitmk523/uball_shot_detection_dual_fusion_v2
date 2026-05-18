@@ -4,11 +4,13 @@
 *.key
 id_rsa*
 
-# data / artifacts
+# data / artifacts (keep small audit files: data/*.md, data/*.json tracked)
 *.mp4
 *.pt
 *.npy
-data/
+*.parquet
+data/tracks/
+data/raw/
 artifacts/
 runs/
 __pycache__/
