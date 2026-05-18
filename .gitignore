@@ -1,0 +1,17 @@
+# secrets — never commit
+.env
+*.pem
+*.key
+id_rsa*
+
+# data / artifacts
+*.mp4
+*.pt
+*.npy
+data/
+artifacts/
+runs/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
