@@ -1,22 +1,197 @@
 {
-  "_note": "P0 output. 12 fully 4-angle (FL/FR/NL/NR) human-annotated games in s3://uball-videos-production. The other ~122 annotated games are far-only (videos/<uuid>/left|right) — NOT usable for dual-fusion; reserved for a possible later far-only track. video_metadata.sync_offset_seconds is 0 for all (not populated) → CV<->GT offset must be fit empirically per game (observed range ~-4..0 s).",
-  "bucket": "uball-videos-production",
-  "video_name_pattern": "<prefix><date>_<game8>_<ANGLE>.mp4  (ANGLE in FL,FR,NL,NR)",
-  "split_policy": "whole-game; no game spans two splits; TEST opened once per candidate model",
-  "games": [
-    {"game_id": "c3f84436-2bbf-4ffa-89bb-5ab280498aeb", "s3_prefix": "court-a/2026-05-08/c3f84436-2bbf-4ffa-89bb/", "shots": 224, "makes": 102, "misses": 122, "split": "train"},
-    {"game_id": "87adecc2-5a96-4b92-be35-4a7d1bfd7985", "s3_prefix": "court-a/2026-03-25/87adecc2-5a96-4b92-be35/", "shots": 166, "makes": 69, "misses": 97, "split": "train"},
-    {"game_id": "f6c7ef88-e9e4-4216-aae2-09ac1e04c9db", "s3_prefix": "court-a/2026-03-21/f6c7ef88-e9e4-4216-aae2/", "shots": 165, "makes": 58, "misses": 107, "split": "train"},
-    {"game_id": "c24b195c-1ac0-4745-b4a9-5b14939b68f2", "s3_prefix": "court-a/2026-04-25/c24b195c-1ac0-4745-b4a9/", "shots": 152, "makes": 65, "misses": 87, "split": "train"},
-    {"game_id": "5d91dd42-b267-4f73-acf6-f1f9698a1f8d", "s3_prefix": "court-a/2026-03-21/5d91dd42-b267-4f73-acf6/", "shots": 142, "makes": 60, "misses": 82, "split": "train"},
-    {"game_id": "e6fba750-596a-441d-b216-df1013a63ce4", "s3_prefix": "court-a/2026-03-18/e6fba750-596a-441d-b216/", "shots": 142, "makes": 70, "misses": 72, "split": "train"},
-    {"game_id": "13e1ffad-e08b-4e1e-84bf-b5adc01cd493", "s3_prefix": "court-a/2026-01-31/13e1ffad-e08b-4e1e-84bf/", "shots": 122, "makes": 71, "misses": 51, "split": "train"},
-    {"game_id": "d3d4a301-abe1-4235-b27d-2a627c02ac4e", "s3_prefix": "court-a/2026-03-20/d3d4a301-abe1-4235-b27d/", "shots": 122, "makes": 60, "misses": 62, "split": "train"},
-    {"game_id": "adf42c15-1607-41ee-9e45-cfbb402f8e53", "s3_prefix": "court-a/2026-03-25/adf42c15-1607-41ee-9e45/", "shots": 187, "makes": 88, "misses": 99, "split": "val"},
-    {"game_id": "c5d1e470-4518-4e47-aee0-d747a04e019a", "s3_prefix": "court-a/2026-04-02/c5d1e470-4518-4e47-aee0/", "shots": 178, "makes": 78, "misses": 100, "split": "val"},
-    {"game_id": "c2a354fe-eb34-4980-af00-8f5ff6b00143", "s3_prefix": "court-a/2026-03-19/c2a354fe-eb34-4980-af00/", "shots": 189, "makes": 80, "misses": 109, "split": "test", "anchor": "v1-validated reference — keep held-out so v2 is directly comparable to the 85.7/79.5/89.2 baseline"},
-    {"game_id": "7a7e7cd1-0a93-4e3c-99b7-97b635b12c8d", "s3_prefix": "court-a/2026-05-05/7a7e7cd1-0a93-4e3c-99b7/", "shots": 180, "makes": 98, "misses": 82, "split": "test"}
-  ],
-  "totals": {"games": 12, "shots": 1969, "train_games": 8, "val_games": 2, "test_games": 2,
-             "date_spread": "2026-01-31 .. 2026-05-08 (lighting/team variety)"}
+ "_note": "P0 (corrected). 4-angle games found by direct S3 scan of court-a (Jan->May) INTERSECT human plays annotation>=100 shots. The DB video_metadata join undercounted (it stored far-only videos/<uuid> paths for many games whose full 4-angle set also exists under court-a/<date>/). ~33 more 4-angle S3 folders exist but lack a matched manual annotation. video_metadata.sync_offset_seconds=0 -> fit CV<->GT offset per game empirically.",
+ "bucket": "uball-videos-production",
+ "video_name_pattern": "<s3_prefix><date>_<game23>_<ANGLE>.mp4  (ANGLE in FL,FR,NL,NR)",
+ "split_policy": "whole-game; no game spans two splits; TEST opened once per candidate model",
+ "totals": {
+  "games": 20,
+  "shots": 3161,
+  "train": 14,
+  "val": 3,
+  "test": 3,
+  "date_spread": "2026-01-31 .. 2026-05-15"
+ },
+ "games": [
+  {
+   "game_id": "2399cfac-684d-4768-b6ac-d24e87c2427b",
+   "s3_prefix": "court-a/2026-04-28/2399cfac-684d-4768-b6ac/",
+   "date": "2026-04-28",
+   "shots": 201,
+   "makes": 106,
+   "misses": 95,
+   "split": "train"
+  },
+  {
+   "game_id": "c2a354fe-eb34-4980-af00-8f5ff6b00143",
+   "s3_prefix": "court-a/2026-03-19/c2a354fe-eb34-4980-af00/",
+   "date": "2026-03-19",
+   "shots": 189,
+   "makes": 80,
+   "misses": 109,
+   "split": "test",
+   "anchor": "v1-validated reference \u2014 keep held-out; v2 directly comparable to 85.7/79.5/89.2 baseline"
+  },
+  {
+   "game_id": "95d2ea95-e51b-4ca3-821e-91498e6023f0",
+   "s3_prefix": "court-a/2026-04-29/95d2ea95-e51b-4ca3-821e/",
+   "date": "2026-04-29",
+   "shots": 179,
+   "makes": 91,
+   "misses": 88,
+   "split": "train"
+  },
+  {
+   "game_id": "b68967fe-bf82-42d8-9557-878395f37f6f",
+   "s3_prefix": "court-a/2026-04-28/b68967fe-bf82-42d8-9557/",
+   "date": "2026-04-28",
+   "shots": 171,
+   "makes": 92,
+   "misses": 79,
+   "split": "val"
+  },
+  {
+   "game_id": "8dcb1330-1d32-4e00-826b-7e46e746a9aa",
+   "s3_prefix": "court-a/2026-04-28/8dcb1330-1d32-4e00-826b/",
+   "date": "2026-04-28",
+   "shots": 167,
+   "makes": 91,
+   "misses": 76,
+   "split": "train"
+  },
+  {
+   "game_id": "d446fe8c-077f-4797-96bb-2a42347d6770",
+   "s3_prefix": "court-a/2026-05-15/d446fe8c-077f-4797-96bb/",
+   "date": "2026-05-15",
+   "shots": 166,
+   "makes": 70,
+   "misses": 96,
+   "split": "train"
+  },
+  {
+   "game_id": "29b51d57-b8db-47a0-a076-3835e8d086fc",
+   "s3_prefix": "court-a/2026-04-16/29b51d57-b8db-47a0-a076/",
+   "date": "2026-04-16",
+   "shots": 164,
+   "makes": 66,
+   "misses": 98,
+   "split": "val"
+  },
+  {
+   "game_id": "cd045da8-5a06-41cd-86fb-8705d015ebd6",
+   "s3_prefix": "court-a/2026-04-29/cd045da8-5a06-41cd-86fb/",
+   "date": "2026-04-29",
+   "shots": 162,
+   "makes": 93,
+   "misses": 69,
+   "split": "train"
+  },
+  {
+   "game_id": "f66eb3b2-6ed7-4812-8248-abeb3aaa0b95",
+   "s3_prefix": "court-a/2026-05-15/f66eb3b2-6ed7-4812-8248/",
+   "date": "2026-05-15",
+   "shots": 161,
+   "makes": 85,
+   "misses": 76,
+   "split": "train"
+  },
+  {
+   "game_id": "ee8745f1-863f-47cf-a43d-d90c58cc9bb2",
+   "s3_prefix": "court-a/2026-04-16/ee8745f1-863f-47cf-a43d/",
+   "date": "2026-04-16",
+   "shots": 160,
+   "makes": 75,
+   "misses": 85,
+   "split": "test"
+  },
+  {
+   "game_id": "9eb51980-1219-492e-8aa3-7a224a0eaa1d",
+   "s3_prefix": "court-a/2026-04-17/9eb51980-1219-492e-8aa3/",
+   "date": "2026-04-17",
+   "shots": 160,
+   "makes": 69,
+   "misses": 91,
+   "split": "train"
+  },
+  {
+   "game_id": "d186e25e-d3d0-4e0d-aec5-5f3fd2ff9004",
+   "s3_prefix": "court-a/2026-04-18/d186e25e-d3d0-4e0d-aec5/",
+   "date": "2026-04-18",
+   "shots": 158,
+   "makes": 66,
+   "misses": 92,
+   "split": "train"
+  },
+  {
+   "game_id": "2c490f1a-b634-44a1-bddf-8a58fca1fb23",
+   "s3_prefix": "court-a/2026-04-16/2c490f1a-b634-44a1-bddf/",
+   "date": "2026-04-16",
+   "shots": 153,
+   "makes": 55,
+   "misses": 98,
+   "split": "train"
+  },
+  {
+   "game_id": "74c4f686-fa1b-4c9a-ace4-f09af0ff6732",
+   "s3_prefix": "court-a/2026-04-17/74c4f686-fa1b-4c9a-ace4/",
+   "date": "2026-04-17",
+   "shots": 147,
+   "makes": 61,
+   "misses": 86,
+   "split": "val"
+  },
+  {
+   "game_id": "0fa23810-d6e8-4799-995a-f14cfe81ea5e",
+   "s3_prefix": "court-a/2026-05-15/0fa23810-d6e8-4799-995a/",
+   "date": "2026-05-15",
+   "shots": 144,
+   "makes": 75,
+   "misses": 69,
+   "split": "train"
+  },
+  {
+   "game_id": "e6fba750-596a-441d-b216-df1013a63ce4",
+   "s3_prefix": "court-a/2026-03-18/e6fba750-596a-441d-b216/",
+   "date": "2026-03-18",
+   "shots": 142,
+   "makes": 70,
+   "misses": 72,
+   "split": "train"
+  },
+  {
+   "game_id": "d0a9faef-e5c6-4a48-95bd-6bbc167942ba",
+   "s3_prefix": "court-a/2026-04-17/d0a9faef-e5c6-4a48-95bd/",
+   "date": "2026-04-17",
+   "shots": 142,
+   "makes": 69,
+   "misses": 73,
+   "split": "train"
+  },
+  {
+   "game_id": "922bff3b-0646-4542-9eec-7ce615a594f8",
+   "s3_prefix": "court-a/2026-04-16/922bff3b-0646-4542-9eec/",
+   "date": "2026-04-16",
+   "shots": 137,
+   "makes": 67,
+   "misses": 70,
+   "split": "train"
+  },
+  {
+   "game_id": "6d601c99-9173-445f-a647-dadbb152fe96",
+   "s3_prefix": "court-a/2026-04-18/6d601c99-9173-445f-a647/",
+   "date": "2026-04-18",
+   "shots": 136,
+   "makes": 47,
+   "misses": 89,
+   "split": "test"
+  },
+  {
+   "game_id": "13e1ffad-e08b-4e1e-84bf-b5adc01cd493",
+   "s3_prefix": "court-a/2026-01-31/13e1ffad-e08b-4e1e-84bf/",
+   "date": "2026-01-31",
+   "shots": 122,
+   "makes": 71,
+   "misses": 51,
+   "split": "train"
+  }
+ ]
 }
