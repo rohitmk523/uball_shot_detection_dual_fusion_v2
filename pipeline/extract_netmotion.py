@@ -368,8 +368,34 @@ def _process_angle(
     records: List[dict] = []
     n_windows = 0
 
+    # Forward-only sequential cursor. cap.set(POS_FRAMES) per frame forces an
+    # H.264 keyframe re-decode every call (pathologically slow). Instead we
+    # grab() forward to the needed index and decode only needed frames; a
+    # backward jump (rare window overlap) falls back to a single hard seek.
+    _cur = 0  # index of the frame the next cap.read() will return
+
+    def _read_at(target: int):
+        nonlocal _cur
+        if target < _cur:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, target)
+            _cur = target
+        while _cur < target:
+            if not cap.grab():
+                return False, None
+            _cur += 1
+        ok, frame = cap.read()
+        _cur += 1
+        return ok, frame
+
     try:
-        for (play_id, _ang), wrows in sorted(angle_windows.items()):
+        # Order windows (and frames within) by frame index so the cursor
+        # advances monotonically; sorting by play_id (a UUID) would not.
+        ordered = sorted(
+            angle_windows.items(),
+            key=lambda kv: int(kv[1][0]["frame_idx"]),
+        )
+        for (play_id, _ang), wrows in ordered:
+            wrows = sorted(wrows, key=lambda r: int(r["frame_idx"]))
             n_windows += 1
             classification = wrows[0].get("classification")
             boxes, rim_ok = stabilized_rim_boxes(wrows)
@@ -386,8 +412,7 @@ def _process_angle(
                     if box is not None else None
                 )
 
-                cap.set(cv2.CAP_PROP_POS_FRAMES, fidx)
-                ok, frame = cap.read()
+                ok, frame = _read_at(fidx)
 
                 framediff = 0.0
                 flow_mag = 0.0
