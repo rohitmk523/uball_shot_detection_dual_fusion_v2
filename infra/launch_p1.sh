@@ -33,6 +33,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DRY_RUN=0
 SPLIT=""
 GAME_ARGS=""
+# Which pipeline batch module bootstrap.sh runs. Default keeps the exact
+# legacy behaviour (P1 track extraction). --entry=run_netmotion_batch
+# switches to the P1b net-motion pass without duplicating any infra.
+P1_ENTRY="run_batch.py"
 # Default ON-DEMAND: spot reclaim lost ~48min of correct work and stalls
 # autonomous mode. On-demand has no reclaim. --spot opts back in.
 USE_ONDEMAND=1
@@ -43,10 +47,18 @@ for a in "$@"; do
     --on-demand) USE_ONDEMAND=1 ;;
     --split=*) SPLIT="${a#*=}"; GAME_ARGS="--split ${a#*=}" ;;
     --games=*) GAME_ARGS="--games ${a#*=}" ;;
+    --entry=*) P1_ENTRY="${a#*=}" ;;
     *) echo "unknown arg: $a" >&2; exit 2 ;;
   esac
 done
-[[ -n "$GAME_ARGS" ]] || { echo "usage: launch_p1.sh --split=train|val|test|all [--on-demand|--spot] [--dry-run]" >&2; exit 2; }
+[[ -n "$GAME_ARGS" ]] || { echo "usage: launch_p1.sh --split=train|val|test|all [--entry=run_batch|run_netmotion_batch] [--on-demand|--spot] [--dry-run]" >&2; exit 2; }
+# Normalise: accept bare module name or with .py; restrict to the two
+# known entrypoints so a typo can never run an arbitrary file.
+P1_ENTRY="${P1_ENTRY%.py}.py"
+case "$P1_ENTRY" in
+  run_batch.py|run_netmotion_batch.py) ;;
+  *) echo "unknown --entry: $P1_ENTRY (run_batch|run_netmotion_batch)" >&2; exit 2 ;;
+esac
 
 # ---- Load .env (gitignored; never echoed) ----------------------------------
 ENV_FILE="$REPO_ROOT/.env"
@@ -209,6 +221,7 @@ subst FROZEN_BUNDLE_SHA_S3      "$FROZEN_BUNDLE_SHA_S3"
 subst RUN_ID                    "$RUN_ID"
 subst SPLIT                     "${SPLIT:-na}"
 subst GAME_ARGS                 "$GAME_ARGS"
+subst P1_ENTRY                  "$P1_ENTRY"
 subst HARD_CAP_MINUTES          "$HARD_CAP_MINUTES"
 subst SPOT_USD_PER_HR           "$BUDGET_PRICE"
 subst SUPABASE_URL              "${SUPABASE_URL:-}"

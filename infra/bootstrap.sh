@@ -24,6 +24,14 @@ FROZEN_BUNDLE_SHA_S3="__FROZEN_BUNDLE_SHA_S3__"
 RUN_ID="__RUN_ID__"
 SPLIT="__SPLIT__"
 GAME_ARGS="__GAME_ARGS__"                       # e.g. '--split train' or '--games a b'
+# Which batch module to run. launch_p1.sh substitutes this; if the
+# placeholder is left unsubstituted (older launcher) we fall back to the
+# legacy P1 entrypoint so default behaviour is byte-for-byte unchanged.
+P1_ENTRY="__P1_ENTRY__"
+case "$P1_ENTRY" in
+  run_batch.py|run_netmotion_batch.py) ;;
+  *) P1_ENTRY="run_batch.py" ;;
+esac
 HARD_CAP_MINUTES="__HARD_CAP_MINUTES__"         # integer; absolute kill switch
 SPOT_USD_PER_HR="__SPOT_USD_PER_HR__"
 SUPABASE_URL="__SUPABASE_URL__"
@@ -54,8 +62,14 @@ export AWS_DEFAULT_REGION="$AWS_REGION"
 
 # Set BEFORE terminate_self is defined/trapped: under `set -u` an early
 # failure must not hit an unbound $PHASE inside the cleanup trap (which
-# would abort the trap before its final self-terminate).
-PHASE="P1_extract"
+# would abort the trap before its final self-terminate). PHASE follows the
+# chosen entry so each pass's logs/progress land under its own prefix; the
+# default entry keeps the exact legacy "P1_extract" prefix.
+if [[ "$P1_ENTRY" == "run_netmotion_batch.py" ]]; then
+  PHASE="P1b_netmotion"
+else
+  PHASE="P1_extract"
+fi
 
 terminate_self() {
   echo "[p1] uploading logs + terminating ($(date -u +%FT%TZ))"
@@ -123,13 +137,13 @@ export P1_WORK_DIR="$WORK/p1_work"
 export GIT_SHA="$RUN_ID"
 
 cd "$WORK/repo/pipeline" || cd "$WORK/repo"
-echo "[p1] starting run_batch $GAME_ARGS"
+echo "[p1] starting $P1_ENTRY $GAME_ARGS (phase=$PHASE)"
 set +e
-python3 run_batch.py $GAME_ARGS --run-id "$RUN_ID" \
+python3 "$P1_ENTRY" $GAME_ARGS --run-id "$RUN_ID" \
   --spot-usd-per-hr "$SPOT_USD_PER_HR"
 RC=$?
 set -e
-echo "[p1] run_batch exited rc=$RC"
+echo "[p1] $P1_ENTRY exited rc=$RC"
 
 aws s3 cp "$LOG" "$S3_WORK_PREFIX/progress/$PHASE/${RUN_ID}.bootstrap.log" \
   --region "$AWS_REGION" || true

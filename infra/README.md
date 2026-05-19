@@ -13,7 +13,9 @@ instance. The laptop only stages code and reads results.
 | `pipeline/frozen_bundle.py` | Download + **sha256-verify** + unpack the frozen detector; import v1 code. |
 | `pipeline/extract_tracks.py` | One game: pull 4 videos, run frozen detector over GT windows, write `tracks.parquet`+`tracks_meta.json` to S3. Idempotent. |
 | `pipeline/run_batch.py` | Iterate games sequentially; update `dual_fusion_v2.{iterations,games}` or fall back to S3 progress JSON. |
-| `infra/bootstrap.sh` | EC2 user-data: arm hard kill, deps, verify bundle, run batch, **always** self-terminate. |
+| `pipeline/extract_netmotion.py` | One game: pull the immutable P1 `tracks.parquet` (rim boxes) + 4 videos, place a rim-anchored ROI **just below the iron**, decode only those pixels, write `netmotion.parquet`+`netmotion_meta.json`. **No YOLO, no net detector.** Idempotent. |
+| `pipeline/run_netmotion_batch.py` | P1b batch driver — mirrors `run_batch.py` (sequential, S3 progress, best-effort Supabase). Phase `P1b_netmotion`. |
+| `infra/bootstrap.sh` | EC2 user-data: arm hard kill, deps, verify bundle, run the selected batch (`P1_ENTRY`, default `run_batch.py`), **always** self-terminate. |
 | `infra/launch_p1.sh` | Laptop launcher with the **hard budget guard**. |
 
 ## Run order
@@ -37,6 +39,44 @@ infra/launch_p1.sh --split=val
 
 `extract_tracks.py` / `run_batch.py` can also be run directly on any GPU
 box that has the deps; the launcher is just the safe, audited path.
+
+## P1b net-motion pass (no YOLO, no net detector)
+
+`P3_RESULTS_v3.md` showed the make/miss ceiling is a representation
+problem: a box-centre trajectory cannot separate a swish from a
+rattle-out. P1b adds a **net-motion energy** time series per shot/angle by
+reusing the P1 rim box to anchor an ROI just below the iron and decoding
+only those pixels. **P1 must already be complete for the target games**
+(P1b reads `s3://.../tracks/<game_id>/tracks.parquet`).
+
+Same launcher, same budget guard — only the entry module changes via
+`--entry`:
+
+```bash
+# Preflight (no spend, no run-instances):
+infra/launch_p1.sh --split=val --entry=run_netmotion_batch --dry-run
+
+# Real launch (one self-terminating box):
+infra/launch_p1.sh --split=val --entry=run_netmotion_batch
+#   or: infra/launch_p1.sh --games="<id1> <id2>" --entry=run_netmotion_batch
+```
+
+`--entry` accepts `run_batch` or `run_netmotion_batch` (with or without
+`.py`); **omitting it preserves the exact legacy P1 behaviour**
+(`P1_ENTRY=run_batch.py`). Progress/logs for P1b land under
+`progress/P1b_netmotion/`. Outputs (immutable, written once per game):
+
+```
+s3://uball-cv-results/cv-results/dual-fusion-v2/netmotion/<game_id>/netmotion.parquet
+s3://uball-cv-results/cv-results/dual-fusion-v2/netmotion/<game_id>/netmotion_meta.json
+```
+
+Net ROI (rim-anchored, clipped to frame; constants in
+`extract_netmotion.py`): x in `[rim_cx - 0.6*rim_w, rim_cx + 0.6*rim_w]`,
+y in `[rim_bottom, rim_bottom + 1.5*rim_h]`. Per-frame metrics:
+`framediff_energy` (mean |Δgray|), `flow_mag` (Farneback mean magnitude),
+`roi_var` (per-window ROI temporal variance), with `rim_ok` marking frames
+whose rim box was observed (vs interpolated/held).
 
 ## Cost-safety model (read before launching)
 
