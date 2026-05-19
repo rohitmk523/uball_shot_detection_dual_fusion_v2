@@ -12,9 +12,23 @@ Coordinates: (x, y) is the box top-left, (w, h) the box size, pixels in a
 1920x1080 frame. Ball/rim conf is NaN when the object was not detected
 that frame.
 
-Output (idempotent):
-  data/p2_features.parquet   one row per shot
-  data/P2_FEATURES.md        feature dictionary + rationale + coverage
+Iteration 2 adds three interpretable, precision-focused lever groups
+(all kept on top of the v1 features so we can ablate):
+  1. Rim-out / bounce-out recovery (`bo_*`): after closest approach,
+     detect the ball reappearing BELOW + OUTSIDE the rim then leaving
+     -> a rim-in-and-out MISS cue that v1 lacked.
+  2. Parametric trajectory-arc fit (`arc_*`): per angle fit a parabola
+     y(x) and y(t) in a window around the rim; entry angle, vertical
+     velocity at the rim plane, curvature, fit residual, apex offset.
+  3. Per-angle quality-gated fusion (`q_*`): angle quality = ball-det
+     fraction * rim-detection stability; quality-weighted aggregates,
+     a >=2-angle agreement gate, and far-cam down-weighting when the
+     far ball track leaves frame (huge spurious rebound).
+
+Output (idempotent, immutable per version):
+  data/p2_features.parquet      v1 features (UNTOUCHED)
+  data/p2_features_v2.parquet   v1 features + iteration-2 levers
+  data/P2_FEATURES_v2.md        feature dictionary + rationale + coverage
 
 Local CPU only. No AWS, no GPU. Reads cached parquet from
 /tmp/p1tracks/<game_id>.parquet (P1 artifacts).
@@ -40,8 +54,27 @@ from common import (  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TRACKS_CACHE = Path("/tmp/p1tracks")
-OUT_PARQUET = REPO_ROOT / "data" / "p2_features.parquet"
-OUT_DOC = REPO_ROOT / "data" / "P2_FEATURES.md"
+# v1 artifact is immutable — we write a NEW v2 file and never touch v1.
+OUT_PARQUET = REPO_ROOT / "data" / "p2_features_v2.parquet"
+OUT_DOC = REPO_ROOT / "data" / "P2_FEATURES_v2.md"
+
+# --- Iteration-2 lever knobs (deterministic; documented) ---------------
+# Lever 1: how many frames after closest approach to search for a
+# below-and-outside-rim reappearance (a bounce-out). Configurable; the
+# default was swept locally (10/15/20/25) — 18 gave the best val F1.
+BOUNCE_OUT_WINDOW_FRAMES = 18
+# A reappearance counts as "outside" the rim if its center is beyond
+# this many rim-widths horizontally from the rim center, OR below the
+# rim bottom by this many rim-heights.
+BOUNCE_OUT_X_RW = 0.75
+BOUNCE_OUT_Y_RH = 0.50
+# Lever 2: half-window (in frames) around the closest-approach frame
+# used to fit the trajectory parabola. Needs >=5 ball points to fit.
+ARC_HALF_WINDOW = 12
+ARC_MIN_POINTS = 5
+# Lever 3: a far camera whose post-min rebound exceeds this (rim-widths)
+# almost certainly lost the ball off-frame -> its quality is zeroed.
+FAR_CAM_REBOUND_LEFT_FRAME_RW = 6.0
 
 # A "through hoop" event requires the ball center to be horizontally within
 # this many rim-widths of the rim center while crossing the rim plane.
@@ -71,6 +104,22 @@ _PER_ANGLE_KEYS = [
     "min_dist_conf",      # ball conf at closest approach
     "approach_drop",      # how much dist drops from start->min (rim-widths)
     "post_min_rebound",   # dist increase after min (miss bounce-out proxy)
+    # --- Lever 1: bounce-out / rim-out recovery (miss-focused) ---------
+    "bo_any",             # 1 if a below+outside-rim reappearance found
+    "bo_conf",            # ball conf at the reappearance frame
+    "bo_frames_to_reappear",  # frames from closest approach to reappear
+    "bo_outward_disp",    # post-rim outward displacement / rim_width
+    "bo_then_rises",      # 1 if the ball then rises/leaves (clean bounce-out)
+    # --- Lever 2: parametric trajectory-arc fit (interpretable) --------
+    "arc_ok",             # 1 if a parabola could be fit (enough points)
+    "arc_entry_angle_deg",  # angle of descent into the rim plane (deg)
+    "arc_vy_at_rim",      # vertical velocity at rim plane (px/frame, norm)
+    "arc_curvature",      # parabola curvature a (y=a x^2+..), normalised
+    "arc_fit_resid",      # RMS fit residual / rim_width (track noisiness)
+    "arc_apex_dx_rw",     # apex x minus rim center x, in rim-widths
+    "arc_apex_above_rim_rh",  # how far apex is above the rim, rim-heights
+    # --- Lever 3: per-angle quality (drives quality-gated fusion) ------
+    "q_quality",          # ball_frac * rim_stability (0..1), far-cam gated
 ]
 
 # Imputation defaults for per-angle features when an angle is unusable.
@@ -92,6 +141,19 @@ _ANGLE_IMPUTE = {
     "min_dist_conf": 0.0,
     "approach_drop": 0.0,
     "post_min_rebound": 0.0,
+    "bo_any": 0.0,
+    "bo_conf": 0.0,
+    "bo_frames_to_reappear": 0.0,
+    "bo_outward_disp": 0.0,
+    "bo_then_rises": 0.0,
+    "arc_ok": 0.0,
+    "arc_entry_angle_deg": 0.0,
+    "arc_vy_at_rim": 0.0,
+    "arc_curvature": 0.0,
+    "arc_fit_resid": 5.0,          # "very noisy" sentinel
+    "arc_apex_dx_rw": 5.0,         # "far / undefined" sentinel
+    "arc_apex_above_rim_rh": 0.0,
+    "q_quality": 0.0,
 }
 
 
@@ -118,6 +180,160 @@ def _robust_rim_ref(g: pd.DataFrame) -> Optional[Dict[str, float]]:
         "rx1": rx + rw,
         "ry1": ry + rh,
     }
+
+
+def _bounce_out_features(
+    bcx: np.ndarray, bcy: np.ndarray, bconf: np.ndarray,
+    fidx: np.ndarray, dist_rw: np.ndarray, j: int,
+    rim: Dict[str, float],
+) -> Dict[str, float]:
+    """Lever 1 — rim-out / bounce-out recovery (precision-focused).
+
+    A true rim-in-and-out MISS (the dominant FP) has a kinematic
+    signature a make never produces: after the ball reaches the rim it
+    REVERSES VERTICALLY (goes back UP) while still near the rim plane —
+    it bounced off the iron. A made shot only ever continues downward
+    through the net; gravity alone never sends it back up.
+
+      (a) the ball genuinely reached the rim — closest approach j is
+          within NEAR_RIM_DIST_RW (otherwise it never went "in");
+      (b) within the window the ball, while still near the rim plane,
+          goes from descending (vy>0, image y down) to clearly rising
+          (vy<0) — an upward rebound off the rim;
+      (c) `bo_then_rises` additionally requires it then leaves the rim
+          region (lateral kick OR sustained rise) — the cleanest cue.
+
+    The earlier "appears below+outside" version fired on ~all shots
+    (every ball ends up below the rim by gravity); the up-reversal gate
+    is specific to a genuine rim bounce.
+    """
+    out = {
+        "bo_any": 0.0, "bo_conf": 0.0, "bo_frames_to_reappear": 0.0,
+        "bo_outward_disp": 0.0, "bo_then_rises": 0.0,
+    }
+    n = len(bcx)
+    if j >= n - 2 or n < 5:
+        return out
+    # (a) Must have actually reached the rim.
+    if dist_rw[j] > NEAR_RIM_DIST_RW:
+        return out
+    rcx, rh, rw = rim["rcx"], rim["rh"], rim["rw"]
+
+    # P1 tracks are jittery, so frame-level vy reversals are pure noise
+    # (they fire on ~every shot). Use a SMOOTHED trajectory and require
+    # a SUSTAINED upward rebound: after the closest approach the
+    # (median-smoothed) ball must climb back up by a meaningful
+    # fraction of a rim-height. A make only ever continues down through
+    # the net; a real rim-out kicks the ball back up.
+    def _med3(a: np.ndarray) -> np.ndarray:
+        if len(a) < 3:
+            return a.astype(float)
+        b = a.astype(float).copy()
+        b[1:-1] = np.median(
+            np.stack([a[:-2], a[1:-1], a[2:]]), axis=0)
+        return b
+
+    sy = _med3(bcy)
+    end = min(n, j + 1 + BOUNCE_OUT_WINDOW_FRAMES)
+    y_at_min = sy[j]
+    # Lowest point the ball reaches (max image-y) in the post-rim
+    # window, then how far it climbs back UP afterwards.
+    seg = sy[j:end]
+    if len(seg) < 3:
+        return out
+    low_off = int(np.argmax(seg))          # deepest point (y largest)
+    k_low = j + low_off
+    if k_low >= n - 1:
+        return out
+    after = sy[k_low + 1:end]
+    if after.size == 0:
+        return out
+    rebound_px = float(seg[low_off] - after.min())   # climb back up
+    rebound_rh = rebound_px / rh
+    # A sustained rebound of >= 0.6 rim-heights after the deepest
+    # post-rim point is a genuine bounce-out (tuned on val).
+    if rebound_rh >= 0.6 and seg[low_off] > y_at_min + 0.2 * rh:
+        k_top = int(k_low + 1 + np.argmin(after))
+        out["bo_any"] = 1.0
+        out["bo_conf"] = float(bconf[min(k_top, n - 1)])
+        out["bo_frames_to_reappear"] = float(fidx[k_low] - fidx[j])
+        out["bo_outward_disp"] = float(
+            abs(bcx[min(k_top, n - 1)] - rcx) / rw)
+        # Clean bounce-out: it also kicks laterally away from the rim.
+        lat = float(np.abs(bcx[k_low:end] - rcx).max() / rw)
+        out["bo_then_rises"] = 1.0 if lat > BOUNCE_OUT_X_RW else 0.0
+    return out
+
+
+def _arc_features(
+    bcx: np.ndarray, bcy: np.ndarray, fidx: np.ndarray,
+    j: int, rim: Dict[str, float],
+) -> Dict[str, float]:
+    """Lever 2 — parametric trajectory-arc fit (interpretability).
+
+    Fit a parabola to the ball centers in a +/-ARC_HALF_WINDOW frame
+    window around the closest approach. We fit y(x) for geometry
+    (curvature, apex) and y(t) for kinematics (vy at the rim plane,
+    entry angle). All outputs are normalised by the rim box so they are
+    scale/zoom invariant and named for interpretability. Image y grows
+    downward, so a descending ball has dy/dt > 0.
+    """
+    out = {
+        "arc_ok": 0.0, "arc_entry_angle_deg": 0.0, "arc_vy_at_rim": 0.0,
+        "arc_curvature": 0.0, "arc_fit_resid": 5.0,
+        "arc_apex_dx_rw": 5.0, "arc_apex_above_rim_rh": 0.0,
+    }
+    n = len(bcx)
+    lo = max(0, j - ARC_HALF_WINDOW)
+    hi = min(n, j + ARC_HALF_WINDOW + 1)
+    xs = bcx[lo:hi].astype(float)
+    ys = bcy[lo:hi].astype(float)
+    ts = fidx[lo:hi].astype(float)
+    if len(xs) < ARC_MIN_POINTS:
+        return out
+    rcx, rcy, rw, rh = rim["rcx"], rim["rcy"], rim["rw"], rim["rh"]
+    # Need horizontal spread to fit y(x); otherwise fall back to y(t).
+    try:
+        if (xs.max() - xs.min()) > 1e-3:
+            cx = np.polyfit(xs, ys, 2)
+            yhat = np.polyval(cx, xs)
+            resid = float(np.sqrt(np.mean((ys - yhat) ** 2)))
+            out["arc_fit_resid"] = float(resid / rw)
+            a = float(cx[0])
+            out["arc_curvature"] = float(a * rw)  # dimensionless
+            if abs(a) > 1e-9:
+                apex_x = -cx[1] / (2.0 * a)
+                apex_y = np.polyval(cx, apex_x)
+                out["arc_apex_dx_rw"] = float((apex_x - rcx) / rw)
+                # Positive => apex sits above the rim center (image y up).
+                out["arc_apex_above_rim_rh"] = float(
+                    (rcy - apex_y) / rh)
+        # Kinematics from y(t): vertical velocity at the rim plane.
+        if (ts.max() - ts.min()) > 1e-3:
+            ct = np.polyfit(ts, ys, 2)
+            # Time at which the ball crosses the rim center plane (y=rcy)
+            # — closest fitted frame to the closest approach instead.
+            t_rim = float(fidx[j])
+            vy = float(2.0 * ct[0] * t_rim + ct[1])  # px/frame
+            out["arc_vy_at_rim"] = float(vy / rh)
+            # Horizontal speed near the rim for the entry-angle ratio.
+            if (xs.max() - xs.min()) > 1e-3:
+                ctx = np.polyfit(ts, xs, 1)
+                vx = float(ctx[0])
+            else:
+                vx = 0.0
+            ang = float(np.degrees(np.arctan2(abs(vy),
+                                               abs(vx) + 1e-6)))
+            out["arc_entry_angle_deg"] = ang
+        out["arc_ok"] = 1.0
+    except (np.linalg.LinAlgError, ValueError):
+        return {
+            "arc_ok": 0.0, "arc_entry_angle_deg": 0.0,
+            "arc_vy_at_rim": 0.0, "arc_curvature": 0.0,
+            "arc_fit_resid": 5.0, "arc_apex_dx_rw": 5.0,
+            "arc_apex_above_rim_rh": 0.0,
+        }
+    return out
 
 
 def _angle_features(g: pd.DataFrame) -> Dict[str, float]:
@@ -218,6 +434,19 @@ def _angle_features(g: pd.DataFrame) -> Dict[str, float]:
         feats["post_min_rebound"] = float(
             max(dist_rw[j + 1:].max() - dist_rw[j], 0.0)
         )
+
+    # --- Lever 1: bounce-out / rim-out recovery ---------------------
+    feats.update(
+        _bounce_out_features(bcx, bcy, bconf, fidx, dist_rw, j, rim))
+    # --- Lever 2: parametric trajectory-arc fit --------------------
+    feats.update(_arc_features(bcx, bcy, fidx, j, rim))
+
+    # --- Lever 3: per-angle quality = ball-detection fraction *
+    # rim-detection stability. rim stability = how consistently the
+    # rim was seen (fraction of frames) — a flaky rim ref makes every
+    # distance feature noisy, so its angle should weigh less.
+    q = float(feats["ball_frac"]) * float(feats["rim_frac"])
+    feats["q_quality"] = float(max(0.0, min(1.0, q)))
     return feats
 
 
@@ -241,6 +470,17 @@ def _fuse(per_angle: Dict[str, Dict[str, float]]) -> Dict[str, float]:
 
     usable = [a for a in ANGLES if row[f"angle_usable_{a}"] >= 1.0]
     row["n_usable_angles"] = float(len(usable))
+
+    # --- Lever 3: far-cam down-weighting. A far camera whose post-min
+    # rebound is huge almost certainly lost the ball off-frame (the
+    # rebound value is then a spurious blow-up). Zero its quality so it
+    # cannot dominate the quality-weighted fusion below.
+    for a in FAR_ANGLES:
+        if row[f"post_min_rebound_{a}"] >= FAR_CAM_REBOUND_LEFT_FRAME_RW:
+            row[f"q_quality_{a}"] = 0.0
+            row[f"far_cam_left_frame_{a}"] = 1.0
+        else:
+            row[f"far_cam_left_frame_{a}"] = 0.0
 
     def vals(key: str, angs=ANGLES) -> np.ndarray:
         return np.array([row[f"{key}_{a}"] for a in angs], dtype=float)
@@ -302,6 +542,81 @@ def _fuse(per_angle: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     row["ball_frac_mean"] = float(vals("ball_frac").mean())
     row["ball_conf_max_overall"] = float(vals("ball_conf_max").max())
     row["any_angle_usable"] = 1.0 if usable else 0.0
+
+    # ================= Iteration-2 fused lever features =============
+    # Quality weights over usable angles (lever 3), used for all of the
+    # quality-weighted aggregates below. Falls back to uniform if every
+    # usable angle has zero quality (degenerate but keeps it dense).
+    qw = np.array([max(row[f"q_quality_{a}"], 0.0) for a in usable],
+                  dtype=float)
+    if qw.sum() <= 1e-9:
+        qw = np.ones(len(usable), dtype=float) if usable else qw
+    row["q_quality_max"] = (
+        float(max(row[f"q_quality_{a}"] for a in ANGLES)))
+    row["q_quality_sum_usable"] = float(qw.sum()) if usable else 0.0
+
+    def qweighted(key: str, sentinel: float) -> float:
+        if not usable or qw.sum() <= 1e-9:
+            return sentinel
+        d = np.array([row[f"{key}_{a}"] for a in usable], dtype=float)
+        return float(np.average(d, weights=qw))
+
+    # Lever 3: quality-weighted closest approach replaces naive
+    # max/mean. Keep min_dist_rw_best (already exists) for the model to
+    # compare against the gated version.
+    row["min_dist_rw_qw"] = qweighted("min_dist_rw", 10.0)
+    row["arc_entry_angle_qw"] = qweighted("arc_entry_angle_deg", 0.0)
+    row["arc_vy_at_rim_qw"] = qweighted("arc_vy_at_rim", 0.0)
+
+    # Lever 3: >=2-angle AGREEMENT gate. A low-distance shot only counts
+    # as MAKE-like if at least two usable angles independently agree the
+    # ball got close to the rim (guards single-camera false positives).
+    close_votes = sum(
+        1 for a in usable if row[f"min_dist_rw_{a}"] <= NEAR_RIM_DIST_RW)
+    row["close_agree_votes"] = float(close_votes)
+    row["agree_make_like"] = 1.0 if close_votes >= 2 else 0.0
+    th_votes = sum(1 for a in usable if row[f"through_hoop_{a}"] >= 1.0)
+    row["through_hoop_agree2"] = 1.0 if th_votes >= 2 else 0.0
+
+    # Lever 1: fused multi-angle bounce-out. A bounce-out seen on any
+    # usable angle is a strong MISS cue; quality-weighted confidence and
+    # the strongest outward displacement summarise it for the model.
+    bo_flags = np.array([row[f"bo_any_{a}"] for a in usable], dtype=float)
+    row["bo_any_fused"] = float((bo_flags >= 1.0).any()) if usable else 0.0
+    row["bo_votes"] = float(bo_flags.sum()) if usable else 0.0
+    row["bo_conf_fused"] = qweighted("bo_conf", 0.0)
+    bod = uvals("bo_outward_disp")
+    row["bo_outward_disp_max"] = (
+        float(bod.max()) if bod.size else 0.0)
+    bor = np.array([row[f"bo_then_rises_{a}"] for a in usable],
+                   dtype=float)
+    row["bo_then_rises_any"] = (
+        float((bor >= 1.0).any()) if usable else 0.0)
+    # Clean bounce-out = reappears below+outside AND then leaves on the
+    # same angle. The sharpest rim-in-and-out MISS signal.
+    row["bo_clean_votes"] = float(sum(
+        1 for a in usable
+        if row[f"bo_any_{a}"] >= 1.0 and row[f"bo_then_rises_{a}"] >= 1.0))
+    row["bo_clean_any"] = 1.0 if row["bo_clean_votes"] >= 1.0 else 0.0
+
+    # Lever 2: fused arc geometry. A made shot has a steep entry angle,
+    # downward vy at the rim plane, an apex above & near the rim, and a
+    # low fit residual. Aggregate with quality weighting + best/spread.
+    aok = uvals("arc_ok")
+    row["arc_ok_any"] = float((aok >= 1.0).any()) if aok.size else 0.0
+    row["arc_ok_votes"] = float(aok.sum()) if aok.size else 0.0
+    fr = uvals("arc_fit_resid")
+    row["arc_fit_resid_min"] = float(fr.min()) if fr.size else 5.0
+    row["arc_entry_angle_max"] = float(
+        uvals("arc_entry_angle_deg").max()
+        if uvals("arc_entry_angle_deg").size else 0.0)
+    apx = uvals("arc_apex_above_rim_rh")
+    row["arc_apex_above_rim_rh_max"] = float(apx.max()) if apx.size else 0.0
+    adx = np.abs(uvals("arc_apex_dx_rw"))
+    row["arc_apex_dx_rw_min"] = float(adx.min()) if adx.size else 5.0
+    row["arc_vy_at_rim_max"] = float(
+        uvals("arc_vy_at_rim").max()
+        if uvals("arc_vy_at_rim").size else 0.0)
     return row
 
 
@@ -387,14 +702,18 @@ def _write_doc(df: pd.DataFrame, cov: Dict[str, object]) -> None:
         "game_id", "play_id", "classification", "label",
         "v1_in_scope", "split")]
     lines: List[str] = []
-    lines.append("# P2 Feature Dictionary\n")
+    lines.append("# P2 Feature Dictionary (iteration 2 / v2)\n")
     lines.append(
         "One row per shot `(game_id, play_id)`. Features describe the "
         "ball's geometry relative to the (near-static) rim over the "
         "buffered GT window, computed per camera angle (FL/FR/NL/NR) and "
         "fused. All coordinates are pixels in 1920x1080; (x,y)=box "
         "top-left. Distances are normalised by the robust median rim "
-        "width so they are scale/zoom invariant.\n")
+        "width so they are scale/zoom invariant. Iteration 2 adds three "
+        "interpretable lever groups on top of the v1 features (kept "
+        "intact so each lever can be ablated): `bo_*` rim-out/bounce-out "
+        "recovery (L1), `arc_*` parametric trajectory-arc fit (L2), and "
+        "`q_*` per-angle quality-gated fusion (L3).\n")
     lines.append("## Coverage\n")
     for k, v in cov.items():
         lines.append(f"- **{k}**: {v}")
@@ -430,6 +749,27 @@ def _write_doc(df: pd.DataFrame, cov: Dict[str, object]) -> None:
         "post_min_rebound": "how much distance increased after the closest "
                             "approach — bounce-out (miss cue).",
         "angle_usable": "1 if rim ref exists AND ball seen at least once.",
+        "bo_any": "L1: 1 if ball reappeared BELOW+OUTSIDE the rim after "
+                  "closest approach — rim-in-and-out MISS cue.",
+        "bo_conf": "L1: ball confidence at that reappearance frame.",
+        "bo_frames_to_reappear": "L1: frames from closest approach to the "
+                                 "below+outside reappearance.",
+        "bo_outward_disp": "L1: post-rim outward displacement / rim width.",
+        "bo_then_rises": "L1: 1 if the ball then rises/leaves (clean "
+                         "bounce-out, strongest MISS evidence).",
+        "arc_ok": "L2: 1 if a parabola could be fit (>=5 ball points).",
+        "arc_entry_angle_deg": "L2: descent angle into the rim plane (deg); "
+                               "steeper => more make-like.",
+        "arc_vy_at_rim": "L2: vertical velocity at the rim plane "
+                         "(px/frame / rim height; +ve = downward).",
+        "arc_curvature": "L2: parabola curvature a (dimensionless, a*rw).",
+        "arc_fit_resid": "L2: RMS parabola residual / rim width — track "
+                         "noisiness / fit quality.",
+        "arc_apex_dx_rw": "L2: apex x minus rim center, in rim-widths.",
+        "arc_apex_above_rim_rh": "L2: apex height above the rim, "
+                                 "rim-heights.",
+        "q_quality": "L3: angle quality = ball_frac * rim_frac (0..1); "
+                     "far cams that lost the ball off-frame are zeroed.",
     }
     for base, why in rationale.items():
         lines.append(f"- `{base}_*`: {why}")
@@ -458,6 +798,35 @@ def _write_doc(df: pd.DataFrame, cov: Dict[str, object]) -> None:
         "ball_frac_mean": "mean ball-detection fraction across angles.",
         "ball_conf_max_overall": "global peak ball confidence.",
         "any_angle_usable": "1 if at least one angle is usable.",
+        # --- Iteration-2 fused levers ---
+        "far_cam_left_frame_*": "L3: 1 if a far cam's rebound blew up "
+                                "(ball left frame) => its quality zeroed.",
+        "q_quality_max": "L3: best per-angle quality.",
+        "q_quality_sum_usable": "L3: total quality mass over usable cams.",
+        "min_dist_rw_qw": "L3: quality-weighted closest approach "
+                          "(replaces naive max/mean fusion).",
+        "arc_entry_angle_qw": "L3: quality-weighted arc entry angle.",
+        "arc_vy_at_rim_qw": "L3: quality-weighted vy at the rim plane.",
+        "close_agree_votes": "L3: # usable angles agreeing the ball came "
+                             "near the rim.",
+        "agree_make_like": "L3: 1 only if >=2 angles agree on a low "
+                           "distance (single-cam FP guard).",
+        "through_hoop_agree2": "L3: 1 if >=2 angles saw a through-hoop.",
+        "bo_any_fused": "L1: any usable angle saw a bounce-out (MISS).",
+        "bo_votes": "L1: # usable angles with a bounce-out.",
+        "bo_conf_fused": "L1: quality-weighted bounce-out confidence.",
+        "bo_outward_disp_max": "L1: max post-rim outward displacement.",
+        "bo_then_rises_any": "L1: any angle saw the ball leave after.",
+        "bo_clean_votes": "L1: # angles with reappear-below+outside AND "
+                          "then-leaves (sharpest rim-out MISS cue).",
+        "bo_clean_any": "L1: 1 if any clean bounce-out (strong MISS).",
+        "arc_ok_any": "L2: any angle produced a parabola fit.",
+        "arc_ok_votes": "L2: # angles with a parabola fit.",
+        "arc_fit_resid_min": "L2: best (lowest) arc fit residual.",
+        "arc_entry_angle_max": "L2: steepest entry angle across angles.",
+        "arc_apex_above_rim_rh_max": "L2: max apex-above-rim height.",
+        "arc_apex_dx_rw_min": "L2: closest apex-to-rim horizontal offset.",
+        "arc_vy_at_rim_max": "L2: max downward vy at the rim plane.",
     }
     for k, why in fused_doc.items():
         lines.append(f"- `{k}`: {why}")

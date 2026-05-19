@@ -16,17 +16,23 @@ Models (all interpretable):
 
 Deterministic (fixed seed). Immutable artifacts. Local CPU only.
 
-Outputs:
-  data/p3_model.joblib
-  data/p3_test_predictions.parquet
-  data/P3_RESULTS.md
+Iteration 2: the feature file is selectable via --features (default
+the v2 file). An ablation (--ablate) trains the model with the
+iteration-2 levers added incrementally (v1 -> +L3 -> +L2 -> +L1 ->
+all) so we can attribute every metric move to a lever.
+
+Outputs (version-suffixed, immutable; v1 artifacts untouched):
+  data/p3_model_v2.joblib
+  data/p3_test_predictions_v2.parquet
+  data/P3_RESULTS_v2.md
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -52,22 +58,47 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import eprint  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-FEATURES = REPO_ROOT / "data" / "p2_features.parquet"
-OUT_MODEL = REPO_ROOT / "data" / "p3_model.joblib"
-OUT_PREDS = REPO_ROOT / "data" / "p3_test_predictions.parquet"
-OUT_DOC = REPO_ROOT / "data" / "P3_RESULTS.md"
+DATA = REPO_ROOT / "data"
+FEATURES_V1 = DATA / "p2_features.parquet"
+FEATURES_V2 = DATA / "p2_features_v2.parquet"
+OUT_MODEL = DATA / "p3_model_v2.joblib"
+OUT_PREDS = DATA / "p3_test_predictions_v2.parquet"
+OUT_DOC = DATA / "P3_RESULTS_v2.md"
 
 SEED = 42
 ANCHOR = "c2a354fe-eb34-4980-af00-8f5ff6b00143"
 META_COLS = ["game_id", "play_id", "classification", "label",
              "v1_in_scope", "split"]
 
+# Iteration-1 reference numbers (from the prior P3_RESULTS.md run on the
+# v1 feature set), the frozen-v1 anchor baseline, and the target.
+ITER1 = {"acc": 0.8474, "prec": 0.7735, "rec": 0.896}          # overall
+ITER1_V1SCOPE = {"acc": 0.8484, "prec": 0.7464, "rec": 0.907}
+V1_BASELINE = {"acc": 0.857, "prec": 0.795, "rec": 0.892}      # to beat
+TARGET = {"acc": 0.92, "prec": 0.90, "rec": 0.90}
 
-def _load() -> Tuple[pd.DataFrame, List[str]]:
-    if not FEATURES.exists():
+
+def _lever_of(col: str) -> str:
+    """Classify a feature column into a lever group for ablation.
+    L1=bounce-out, L2=arc, L3=quality-gated fusion, V1=everything else
+    (the iteration-1 feature set)."""
+    if col.startswith("bo_") or col.startswith("far_cam_left_frame"):
+        return "L1"
+    if col.startswith("arc_"):
+        return "L2"
+    if (col.startswith("q_quality") or col in {
+            "min_dist_rw_qw", "arc_entry_angle_qw", "arc_vy_at_rim_qw",
+            "close_agree_votes", "agree_make_like",
+            "through_hoop_agree2"}):
+        return "L3"
+    return "V1"
+
+
+def _load(features: Path) -> Tuple[pd.DataFrame, List[str]]:
+    if not features.exists():
         raise FileNotFoundError(
-            f"{FEATURES} not found — run pipeline/p2_dataset.py first")
-    df = pd.read_parquet(FEATURES)
+            f"{features} not found — run pipeline/p2_dataset.py first")
+    df = pd.read_parquet(features)
     feat_cols = [c for c in df.columns if c not in META_COLS]
     # Guard against accidental non-numeric / constant columns.
     feat_cols = [c for c in feat_cols
@@ -135,13 +166,39 @@ def _metrics(y: np.ndarray, pred: np.ndarray,
     return out
 
 
+# Precision is the explicit bottleneck (target prec>=0.90, FP-heavy).
+# Plain F1-optimal thresholding pushes recall up / precision down — the
+# wrong trade here. We instead pick, on VAL ONLY, the highest-F1
+# threshold whose VAL precision clears a floor; if no threshold reaches
+# the floor we fall back to the threshold maximising
+# (precision-weighted) F-beta with beta<1 (precision favoured). This is
+# a tuning decision, never touches TEST.
+VAL_PRECISION_FLOOR = 0.85
+PRECISION_BETA = 0.5  # F-beta with beta<1 weights precision higher
+
+
 def _best_threshold(y: np.ndarray, prob: np.ndarray) -> Tuple[float, float]:
-    """Pick the threshold maximising F1 on the validation set."""
+    """Precision-aware threshold selection on the validation set."""
+    grid = np.linspace(0.05, 0.95, 91)
     best_t, best_f1 = 0.5, -1.0
-    for t in np.linspace(0.05, 0.95, 91):
-        f1 = f1_score(y, (prob >= t).astype(int), zero_division=0)
-        if f1 > best_f1:
-            best_f1, best_t = f1, float(t)
+    floor_t, floor_f1 = None, -1.0
+    b2 = PRECISION_BETA ** 2
+    for t in grid:
+        pred = (prob >= t).astype(int)
+        p = precision_score(y, pred, zero_division=0)
+        r = recall_score(y, pred, zero_division=0)
+        f1 = f1_score(y, pred, zero_division=0)
+        # Track the F1-best threshold among those clearing the
+        # precision floor (must keep some recall so it's usable).
+        if p >= VAL_PRECISION_FLOOR and r >= 0.5 and f1 > floor_f1:
+            floor_f1, floor_t = f1, float(t)
+        # Fallback objective: precision-weighted F-beta (beta<1).
+        denom = (b2 * p + r)
+        fb = (1 + b2) * p * r / denom if denom > 0 else 0.0
+        if fb > best_f1:
+            best_f1, best_t = fb, float(t)
+    if floor_t is not None:
+        return floor_t, round(floor_f1, 4)
     return best_t, round(best_f1, 4)
 
 
@@ -240,10 +297,78 @@ def _fmt_metric_block(name: str, m: Dict) -> List[str]:
     ]
 
 
+def _cmp_table(o: Dict, v1s: Dict) -> List[str]:
+    """Iteration-2 vs iteration-1 vs v1 baseline vs target."""
+    L = ["## Iteration 2 vs Iteration 1 vs v1 baseline vs target\n"]
+    L.append("Overall held-out test (make/miss incl 4PT_MAKE):\n")
+    L.append("| metric | v1 baseline | iter1 | **iter2** | target |")
+    L.append("|---|---|---|---|---|")
+    for k, lab in (("acc", "accuracy"), ("prec", "precision"),
+                   ("rec", "recall")):
+        ov = {"acc": o["accuracy"], "prec": o["precision"],
+              "rec": o["recall"]}[k]
+        L.append(
+            f"| {lab} | {V1_BASELINE[k]} | {ITER1[k]} | "
+            f"**{ov}** | {TARGET[k]} |")
+    L.append("")
+    L.append("v1_in_scope subset (apples-to-apples vs v1 "
+             "85.7/79.5/89.2):\n")
+    L.append("| metric | v1 baseline | iter1 | **iter2** | target |")
+    L.append("|---|---|---|---|---|")
+    for k, lab in (("acc", "accuracy"), ("prec", "precision"),
+                   ("rec", "recall")):
+        vv = {"acc": v1s["accuracy"], "prec": v1s["precision"],
+              "rec": v1s["recall"]}[k]
+        L.append(
+            f"| {lab} | {V1_BASELINE[k]} | {ITER1_V1SCOPE[k]} | "
+            f"**{vv}** | {TARGET[k]} |")
+    L.append("")
+    L.append(
+        "> Note: iter1 numbers used plain F1-optimal thresholding; "
+        "iter2 uses a precision-aware threshold (precision is the "
+        "stated bottleneck), tuned on VAL only. The ablation below "
+        "isolates the feature levers because its `V1 only` stage "
+        "ALSO uses the iter2 threshold policy — so stage-to-stage "
+        "deltas are pure feature effects, while the iter1-vs-iter2 "
+        "table reflects the combined (features + threshold policy) "
+        "improvement.\n")
+    return L
+
+
+def _ablation_table(rows: List[Dict]) -> List[str]:
+    L = ["## Ablation — levers added incrementally\n"]
+    L.append("Each stage re-selects model + threshold on VAL, then "
+             "evaluates ONCE on TEST. Overall metrics:\n")
+    L.append("| stage | #feat | model | acc | prec | rec | f1 | "
+             "FP | FN |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
+    for r in rows:
+        m = r["overall"]
+        cm = m["confusion_matrix"]
+        L.append(
+            f"| {r['stage']} | {r['n_feats']} | {r['selected']} | "
+            f"{m['accuracy']} | {m['precision']} | {m['recall']} | "
+            f"{m['f1']} | {cm['fp']} | {cm['fn']} |")
+    L.append("")
+    L.append("Anchor game (c2a354fe) per stage:\n")
+    L.append("| stage | acc | prec | rec |")
+    L.append("|---|---|---|---|")
+    for r in rows:
+        a = r["anchor"]
+        if a:
+            L.append(f"| {r['stage']} | {a['accuracy']} | "
+                     f"{a['precision']} | {a['recall']} |")
+    L.append("")
+    return L
+
+
 def _write_doc(ctx: Dict) -> None:
-    L: List[str] = ["# P3 Results — interpretable make/miss model\n"]
+    L: List[str] = [
+        "# P3 Results v2 — interpretable make/miss model "
+        "(iteration 2)\n"]
     L.append(f"Seed={SEED}. Whole-game splits (no game spans splits, no "
-             f"leakage). Test opened once.\n")
+             f"leakage). Test opened once. "
+             f"Features: `{ctx.get('features_file', '?')}`.\n")
     L.append("## Split sizes")
     for s, n in ctx["split_sizes"].items():
         L.append(f"- {s}: {n} shots")
@@ -274,14 +399,9 @@ def _write_doc(ctx: Dict) -> None:
                          f"{m['recall_as_make']}\n")
             else:
                 L += _fmt_metric_block(label, ctx["test"][key])
-    L.append("### v1 baseline comparison")
-    b = ctx["test"]["v1_in_scope"]
-    L.append("| metric | v1 baseline | v2 (v1_in_scope) | target |")
-    L.append("|---|---|---|---|")
-    L.append(f"| accuracy | 0.857 | {b['accuracy']} | >=0.92 |")
-    L.append(f"| precision | 0.795 | {b['precision']} | >=0.90 |")
-    L.append(f"| recall | 0.892 | {b['recall']} | >=0.90 |")
-    L.append("")
+    L += _cmp_table(ctx["test"]["overall"], ctx["test"]["v1_in_scope"])
+    if ctx.get("ablation"):
+        L += _ablation_table(ctx["ablation"])
     L.append("## Per-game test breakdown")
     for gid, m in ctx["by_game"].items():
         tag = "  <-- ANCHOR" if gid == ANCHOR else ""
@@ -308,11 +428,11 @@ def _write_doc(ctx: Dict) -> None:
     OUT_DOC.write_text("\n".join(L))
 
 
-def main() -> None:
-    np.random.seed(SEED)
-    df, feat_cols = _load()
-    eprint(f"[p3] {len(df)} shots, {len(feat_cols)} features")
-
+def _fit_select_eval(df: pd.DataFrame, feat_cols: List[str],
+                     write_artifacts: bool) -> Dict:
+    """Train both models on TRAIN, tune model+threshold on VAL, refit
+    the winner on TRAIN+VAL, then evaluate ONCE on TEST. Returns the
+    full context dict. No test data ever touches selection/tuning."""
     train = df[df["split"] == "train"]
     val = df[df["split"] == "val"]
     test = df[df["split"] == "test"]
@@ -325,11 +445,9 @@ def main() -> None:
 
     models = _make_models()
     val_selection: Dict[str, Dict] = {}
-    fitted: Dict[str, Pipeline] = {}
     for name, mdl in models.items():
         m = _clone(mdl)
         m.fit(Xtr, ytr)
-        fitted[name] = m
         pva = m.predict_proba(Xva)[:, 1]
         thr, vf1 = _best_threshold(yva, pva)
         vacc = accuracy_score(yva, (pva >= thr).astype(int))
@@ -340,12 +458,11 @@ def main() -> None:
         eprint(f"[p3] {name}: val_f1={vf1} val_acc={round(vacc,4)} "
                f"thr={thr}")
 
-    selected = max(val_selection, key=lambda k: val_selection[k]["val_f1"])
+    selected = max(val_selection,
+                   key=lambda k: val_selection[k]["val_f1"])
     threshold = val_selection[selected]["threshold"]
     eprint(f"[p3] selected={selected} threshold={threshold}")
 
-    # Refit selected model on train+val (more data; still no test leak),
-    # keeping the val-tuned threshold.
     final = _clone(models[selected])
     trval = pd.concat([train, val])
     Xtv = trval[feat_cols].to_numpy()
@@ -363,30 +480,9 @@ def main() -> None:
     by_game = _by_game(test, yte, pred_te, prob_te)
     importances = _coeffs(final, feat_cols, Xte, yte, selected)
 
-    # Always expose standardised logistic coefficients (signed, directly
-    # interpretable) even when HGB is the deployed model — refit logreg
-    # on train+val for an apples-to-apples readout.
     logreg_tv = _clone(models["logreg"])
     logreg_tv.fit(Xtv, ytv)
     logreg_coefs = _coeffs(logreg_tv, feat_cols, Xte, yte, "logreg")
-
-    # Per-shot test predictions (immutable artifact).
-    preds = test[["game_id", "play_id", "label", "classification",
-                  "v1_in_scope"]].copy()
-    preds["pred"] = pred_te
-    preds["prob"] = np.round(prob_te, 6)
-    preds["correct"] = (preds["pred"] == preds["label"]).astype(int)
-    preds = preds.sort_values(["game_id", "play_id"]).reset_index(
-        drop=True)
-    preds.to_parquet(OUT_PREDS, index=False)
-
-    dump({
-        "model": final,
-        "selected": selected,
-        "threshold": threshold,
-        "feat_cols": feat_cols,
-        "seed": SEED,
-    }, OUT_MODEL)
 
     ctx = {
         "split_sizes": {
@@ -401,18 +497,99 @@ def main() -> None:
         "importances": importances,
         "logreg_coefs": logreg_coefs,
     }
+
+    if write_artifacts:
+        preds = test[["game_id", "play_id", "label", "classification",
+                      "v1_in_scope"]].copy()
+        preds["pred"] = pred_te
+        preds["prob"] = np.round(prob_te, 6)
+        preds["correct"] = (
+            preds["pred"] == preds["label"]).astype(int)
+        preds = preds.sort_values(
+            ["game_id", "play_id"]).reset_index(drop=True)
+        preds.to_parquet(OUT_PREDS, index=False)
+        dump({
+            "model": final, "selected": selected,
+            "threshold": threshold, "feat_cols": feat_cols,
+            "seed": SEED,
+        }, OUT_MODEL)
+    return ctx
+
+
+def _ablation(df: pd.DataFrame, all_feats: List[str]) -> List[Dict]:
+    """Incrementally add the iteration-2 lever groups so every metric
+    move is attributable. Order: V1 -> +L3 -> +L2 -> +L1 -> all
+    (all == V1+L1+L2+L3). Each stage is fully re-selected and
+    re-thresholded on VAL, then evaluated once on TEST."""
+    groups: Dict[str, List[str]] = {"V1": [], "L1": [], "L2": [],
+                                    "L3": []}
+    for c in all_feats:
+        groups[_lever_of(c)].append(c)
+    stages = [
+        ("V1 only (iteration-1 features)", ["V1"]),
+        ("V1 + L3 (quality-gated fusion)", ["V1", "L3"]),
+        ("V1 + L3 + L2 (arc fit)", ["V1", "L3", "L2"]),
+        ("V1 + L3 + L2 + L1 (bounce-out) = ALL",
+         ["V1", "L3", "L2", "L1"]),
+    ]
+    rows: List[Dict] = []
+    for label, keys in stages:
+        cols = [c for k in keys for c in groups[k]]
+        eprint(f"[ablate] {label}: {len(cols)} feats")
+        ctx = _fit_select_eval(df, cols, write_artifacts=False)
+        rows.append({
+            "stage": label,
+            "n_feats": len(cols),
+            "selected": ctx["selected"],
+            "overall": ctx["test"]["overall"],
+            "v1_in_scope": ctx["test"]["v1_in_scope"],
+            "anchor": ctx["by_game"].get(ANCHOR),
+            "cv": ctx["cv"],
+        })
+    return rows
+
+
+def main(argv: Optional[List[str]] = None) -> None:
+    ap = argparse.ArgumentParser(description="P3 make/miss model")
+    ap.add_argument(
+        "--features", default=str(FEATURES_V2),
+        help="feature parquet (default: data/p2_features_v2.parquet)")
+    ap.add_argument(
+        "--ablate", action="store_true",
+        help="run the incremental lever ablation and include it in "
+             "the report")
+    args = ap.parse_args(argv)
+
+    np.random.seed(SEED)
+    feats_path = Path(args.features)
+    df, feat_cols = _load(feats_path)
+    eprint(f"[p3] {feats_path.name}: {len(df)} shots, "
+           f"{len(feat_cols)} features")
+
+    ctx = _fit_select_eval(df, feat_cols, write_artifacts=True)
+
+    ablation: Optional[List[Dict]] = None
+    if args.ablate:
+        ablation = _ablation(df, feat_cols)
+    ctx["ablation"] = ablation
+    ctx["features_file"] = feats_path.name
     _write_doc(ctx)
 
     print(json.dumps({
-        "selected": selected,
-        "threshold": threshold,
-        "cv": cv,
-        "test_overall": test_metrics["overall"],
-        "test_v1_in_scope": test_metrics["v1_in_scope"],
-        "test_4pt": test_metrics.get("4pt_make_only"),
-        "anchor": by_game.get(ANCHOR),
-        "top_features": importances[:15],
-        "logreg_coefs_top": logreg_coefs[:15],
+        "features_file": feats_path.name,
+        "selected": ctx["selected"],
+        "threshold": ctx["threshold"],
+        "cv": ctx["cv"],
+        "test_overall": ctx["test"]["overall"],
+        "test_v1_in_scope": ctx["test"]["v1_in_scope"],
+        "test_4pt": ctx["test"].get("4pt_make_only"),
+        "anchor": ctx["by_game"].get(ANCHOR),
+        "ablation": [
+            {"stage": a["stage"], "overall": a["overall"]}
+            for a in ablation
+        ] if ablation else None,
+        "top_features": ctx["importances"][:15],
+        "logreg_coefs_top": ctx["logreg_coefs"][:15],
     }, indent=2))
 
 
