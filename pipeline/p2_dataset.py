@@ -25,16 +25,28 @@ Iteration 2 adds three interpretable, precision-focused lever groups
      a >=2-angle agreement gate, and far-cam down-weighting when the
      far ball track leaves frame (huge spurious rebound).
 
+Iteration 3 adds a feature-source switch. With ``--version v3`` the L1
+(bounce-out) and L2 (arc-fit) trajectory levers are recomputed on the
+KALMAN-CLEANED ball track (pipeline/track_clean.py) instead of the raw
+detector centers. The raw-track versions are KEPT alongside (suffixed
+``_raw``) so the model can use both / ablate, and per-angle imputation
+fraction + track-quality features let the model discount unreliable
+shots. v1/v2 parquet are never touched — v3 writes its own files.
+
 Output (idempotent, immutable per version):
   data/p2_features.parquet      v1 features (UNTOUCHED)
-  data/p2_features_v2.parquet   v1 features + iteration-2 levers
-  data/P2_FEATURES_v2.md        feature dictionary + rationale + coverage
+  data/p2_features_v2.parquet   v1 features + iteration-2 levers (UNTOUCHED)
+  data/P2_FEATURES_v2.md        v2 dictionary (UNTOUCHED)
+  data/p2_features_v3.parquet   v2 features + cleaned-track L1/L2 + raw
+                                copies + imputation/quality features
+  data/P2_FEATURES_v3.md        v3 feature dictionary + rationale
 
 Local CPU only. No AWS, no GPU. Reads cached parquet from
 /tmp/p1tracks/<game_id>.parquet (P1 artifacts).
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -51,12 +63,16 @@ from common import (  # noqa: E402
     eprint,
     load_manifest,
 )
+from track_clean import clean_track, jitter_metric  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TRACKS_CACHE = Path("/tmp/p1tracks")
 # v1 artifact is immutable — we write a NEW v2 file and never touch v1.
 OUT_PARQUET = REPO_ROOT / "data" / "p2_features_v2.parquet"
 OUT_DOC = REPO_ROOT / "data" / "P2_FEATURES_v2.md"
+# Iteration-3 immutable outputs (v1/v2 never touched).
+OUT_PARQUET_V3 = REPO_ROOT / "data" / "p2_features_v3.parquet"
+OUT_DOC_V3 = REPO_ROOT / "data" / "P2_FEATURES_v3.md"
 
 # --- Iteration-2 lever knobs (deterministic; documented) ---------------
 # Lever 1: how many frames after closest approach to search for a
@@ -336,6 +352,124 @@ def _arc_features(
     return out
 
 
+# Iteration-3 per-angle keys recomputed on the CLEANED track. The L1/L2
+# math is identical to the raw versions; only the input ball-center
+# series differs (Kalman-smoothed + bounded-gap-filled). Suffixed `_cl`
+# so both coexist for the model / ablation. Plus imputation + quality.
+_CLEAN_KEYS = [
+    "cln_arc_ok", "cln_arc_entry_angle_deg", "cln_arc_vy_at_rim",
+    "cln_arc_curvature", "cln_arc_fit_resid", "cln_arc_apex_dx_rw",
+    "cln_arc_apex_above_rim_rh",
+    "cln_bo_any", "cln_bo_conf", "cln_bo_frames_to_reappear",
+    "cln_bo_outward_disp", "cln_bo_then_rises",
+    "cln_min_dist_rw", "cln_through_hoop", "cln_frac_inside_rim",
+    # Imputation / track-quality awareness (lets the model discount
+    # shots whose cleaned trajectory is mostly bridged guesswork).
+    "imp_frac",            # fraction of cleaned points that were imputed
+    "n_imputed",           # # imputed frames
+    "n_rejected_outlier",  # # raw detections killed as teleports
+    "track_quality",       # [0,1] per-angle cleaned-track reliability
+    "jitter_raw",          # median |2nd-diff| of the RAW y-center
+    "jitter_clean",        # same on the CLEANED y-center (should drop)
+    "jitter_reduction",    # raw - clean (>0 => de-jittered)
+    "n_cleaned_points",    # usable cleaned centers (detections + fills)
+]
+
+_CLEAN_IMPUTE = {
+    "cln_arc_ok": 0.0, "cln_arc_entry_angle_deg": 0.0,
+    "cln_arc_vy_at_rim": 0.0, "cln_arc_curvature": 0.0,
+    "cln_arc_fit_resid": 5.0, "cln_arc_apex_dx_rw": 5.0,
+    "cln_arc_apex_above_rim_rh": 0.0,
+    "cln_bo_any": 0.0, "cln_bo_conf": 0.0,
+    "cln_bo_frames_to_reappear": 0.0, "cln_bo_outward_disp": 0.0,
+    "cln_bo_then_rises": 0.0,
+    "cln_min_dist_rw": 10.0, "cln_through_hoop": 0.0,
+    "cln_frac_inside_rim": 0.0,
+    "imp_frac": 0.0, "n_imputed": 0.0, "n_rejected_outlier": 0.0,
+    "track_quality": 0.0, "jitter_raw": 0.0, "jitter_clean": 0.0,
+    "jitter_reduction": 0.0, "n_cleaned_points": 0.0,
+}
+
+
+def _cleaned_track_features(
+    g: pd.DataFrame, rim: Dict[str, float],
+) -> Dict[str, float]:
+    """Iteration 3 — recompute the L1/L2 trajectory levers on the
+    Kalman-cleaned ball track and expose imputation / quality signals.
+
+    ``g`` is one (play_id, angle) frame slice; ``rim`` is its robust
+    rim reference. The bounce-out (L1) and arc-fit (L2) math is the
+    SAME as the raw path — only the ball-center series changes (the
+    cleaned track de-jitters real detections and bridges short, bounded
+    occlusion gaps, which is exactly what flattened these signals on
+    the raw track per the iteration-2 conclusion). All cleaned outputs
+    are prefixed `cln_`; raw L1/L2 are kept untouched elsewhere.
+    """
+    feats = dict(_CLEAN_IMPUTE)
+    res = clean_track(g)
+    n_all = len(res.frame_idx)
+    if n_all == 0:
+        return feats
+
+    feats["n_rejected_outlier"] = float(int(res.rejected_outlier.sum()))
+    feats["n_imputed"] = float(int(res.imputed.sum()))
+    feats["jitter_raw"] = (
+        0.0 if np.isnan(jitter_metric(res.raw_cy))
+        else float(jitter_metric(res.raw_cy)))
+    jc = jitter_metric(res.cy)
+    feats["jitter_clean"] = 0.0 if np.isnan(jc) else float(jc)
+    feats["jitter_reduction"] = float(
+        feats["jitter_raw"] - feats["jitter_clean"])
+
+    valid = ~np.isnan(res.cx)
+    feats["n_cleaned_points"] = float(int(valid.sum()))
+    if valid.sum() > 0:
+        feats["imp_frac"] = float(
+            res.imputed[valid].sum()) / float(valid.sum())
+    feats["track_quality"] = float(res.track_quality)
+
+    if rim is None or valid.sum() < 3:
+        return feats
+
+    bcx = res.cx[valid]
+    bcy = res.cy[valid]
+    fidx = res.frame_idx[valid].astype(float)
+    # Confidence proxy on the cleaned track: imputed points are softer
+    # evidence than kept detections (used only by cln_bo_conf).
+    bconf = np.where(res.imputed[valid] == 1, 0.4, 0.9)
+
+    rcx, rcy, rw = rim["rcx"], rim["rcy"], rim["rw"]
+    dist_rw = np.hypot(bcx - rcx, bcy - rcy) / rw
+    j = int(np.argmin(dist_rw))
+    feats["cln_min_dist_rw"] = float(dist_rw[j])
+
+    inside = (
+        (bcx >= rim["rx0"]) & (bcx <= rim["rx1"])
+        & (bcy >= rim["ry0"]) & (bcy <= rim["ry1"])
+    )
+    feats["cln_frac_inside_rim"] = float(inside.mean())
+    # Clean through-hoop: above->below rim plane within x-tol.
+    xtol = THROUGH_HOOP_X_TOL_RW * rw
+    horiz_ok = np.abs(bcx - rcx) <= xtol
+    above = bcy <= rcy
+    th = False
+    for k in range(1, len(bcy)):
+        if (above[k - 1] and not above[k]
+                and horiz_ok[k - 1] and horiz_ok[k]):
+            th = True
+            break
+    feats["cln_through_hoop"] = 1.0 if th else 0.0
+
+    # Reuse the EXACT L1/L2 implementations on the cleaned series.
+    bo = _bounce_out_features(bcx, bcy, bconf, fidx, dist_rw, j, rim)
+    for k, v in bo.items():
+        feats[f"cln_{k}"] = float(v)
+    arc = _arc_features(bcx, bcy, fidx, j, rim)
+    for k, v in arc.items():
+        feats[f"cln_{k}"] = float(v)
+    return feats
+
+
 def _angle_features(g: pd.DataFrame) -> Dict[str, float]:
     """Compute interpretable ball-vs-rim features for one angle's window.
 
@@ -435,11 +569,20 @@ def _angle_features(g: pd.DataFrame) -> Dict[str, float]:
             max(dist_rw[j + 1:].max() - dist_rw[j], 0.0)
         )
 
-    # --- Lever 1: bounce-out / rim-out recovery ---------------------
+    # --- Lever 1: bounce-out / rim-out recovery (RAW track) ---------
     feats.update(
         _bounce_out_features(bcx, bcy, bconf, fidx, dist_rw, j, rim))
-    # --- Lever 2: parametric trajectory-arc fit --------------------
+    # --- Lever 2: parametric trajectory-arc fit (RAW track) --------
     feats.update(_arc_features(bcx, bcy, fidx, j, rim))
+
+    # --- Iteration 3: recompute L1/L2 on the KALMAN-CLEANED track ---
+    # The raw L1/L2 above are kept untouched (suffixed `_raw` below at
+    # fuse time via the v3 key map). Here we run the exact same lever
+    # math on the cleaned ball-center series so the model can compare /
+    # ablate raw vs cleaned. Also emit per-angle imputation fraction and
+    # track-quality so the model can discount unreliable shots, plus a
+    # de-jitter sanity delta (median |2nd-diff| raw vs cleaned).
+    feats.update(_cleaned_track_features(g, rim))
 
     # --- Lever 3: per-angle quality = ball-detection fraction *
     # rim-detection stability. rim stability = how consistently the
@@ -463,6 +606,10 @@ def _fuse(per_angle: Dict[str, Dict[str, float]]) -> Dict[str, float]:
         fa = per_angle.get(ang, dict(_ANGLE_IMPUTE))
         for k in _PER_ANGLE_KEYS:
             row[f"{k}_{ang}"] = float(fa.get(k, _ANGLE_IMPUTE[k]))
+        # Iteration-3 cleaned-track keys (present only when v3 was
+        # requested; default-imputed otherwise so the row stays dense).
+        for k in _CLEAN_KEYS:
+            row[f"{k}_{ang}"] = float(fa.get(k, _CLEAN_IMPUTE[k]))
         row[f"angle_usable_{ang}"] = (
             1.0 if (fa.get("rim_detected", 0.0) >= 1.0
                     and fa.get("ball_frac", 0.0) > 0.0) else 0.0
@@ -617,6 +764,64 @@ def _fuse(per_angle: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     row["arc_vy_at_rim_max"] = float(
         uvals("arc_vy_at_rim").max()
         if uvals("arc_vy_at_rim").size else 0.0)
+
+    # ============ Iteration-3 fused CLEANED-track features ==========
+    # Same fusion philosophy as the raw levers but over the Kalman-
+    # cleaned per-angle signals, plus shot-level imputation/quality
+    # aggregates so the model can globally discount weak shots.
+    def cuvals(key: str) -> np.ndarray:
+        v = [row[f"{key}_{a}"] for a in ANGLES if a in usable]
+        return np.array(v, dtype=float)
+
+    cmd = cuvals("cln_min_dist_rw")
+    row["cln_min_dist_rw_best"] = float(cmd.min()) if cmd.size else 10.0
+    row["cln_through_hoop_any"] = float(
+        (cuvals("cln_through_hoop") >= 1.0).any()
+        if cuvals("cln_through_hoop").size else 0.0)
+    row["cln_through_hoop_votes"] = float(
+        sum(row[f"cln_through_hoop_{a}"] for a in usable))
+    cfir = cuvals("cln_frac_inside_rim")
+    row["cln_frac_inside_rim_max"] = (
+        float(cfir.max()) if cfir.size else 0.0)
+    # Cleaned bounce-out (the L1 signal iter2 said was flattened).
+    cbo = np.array([row[f"cln_bo_any_{a}"] for a in usable], dtype=float)
+    row["cln_bo_any_fused"] = float(
+        (cbo >= 1.0).any()) if usable else 0.0
+    row["cln_bo_votes"] = float(cbo.sum()) if usable else 0.0
+    row["cln_bo_clean_any"] = float(
+        any(row[f"cln_bo_any_{a}"] >= 1.0
+            and row[f"cln_bo_then_rises_{a}"] >= 1.0
+            for a in usable)) if usable else 0.0
+    cbod = cuvals("cln_bo_outward_disp")
+    row["cln_bo_outward_disp_max"] = (
+        float(cbod.max()) if cbod.size else 0.0)
+    # Cleaned arc geometry (the L2 signal iter2 said was flattened).
+    caok = cuvals("cln_arc_ok")
+    row["cln_arc_ok_votes"] = float(caok.sum()) if caok.size else 0.0
+    cfr = cuvals("cln_arc_fit_resid")
+    row["cln_arc_fit_resid_min"] = float(cfr.min()) if cfr.size else 5.0
+    cea = cuvals("cln_arc_entry_angle_deg")
+    row["cln_arc_entry_angle_max"] = (
+        float(cea.max()) if cea.size else 0.0)
+    capx = cuvals("cln_arc_apex_above_rim_rh")
+    row["cln_arc_apex_above_rim_rh_max"] = (
+        float(capx.max()) if capx.size else 0.0)
+    cadx = np.abs(cuvals("cln_arc_apex_dx_rw"))
+    row["cln_arc_apex_dx_rw_min"] = (
+        float(cadx.min()) if cadx.size else 5.0)
+    cvy = cuvals("cln_arc_vy_at_rim")
+    row["cln_arc_vy_at_rim_max"] = (
+        float(cvy.max()) if cvy.size else 0.0)
+    # Shot-level imputation / quality (discount unreliable shots).
+    row["track_quality_mean"] = float(vals("track_quality").mean())
+    row["track_quality_max"] = float(vals("track_quality").max())
+    row["imp_frac_mean"] = float(vals("imp_frac").mean())
+    iq = cuvals("imp_frac")
+    row["imp_frac_min_usable"] = float(iq.min()) if iq.size else 1.0
+    row["n_rejected_outlier_total"] = float(
+        vals("n_rejected_outlier").sum())
+    row["jitter_reduction_mean"] = float(
+        vals("jitter_reduction").mean())
     return row
 
 
@@ -842,18 +1047,108 @@ def _write_doc(df: pd.DataFrame, cov: Dict[str, object]) -> None:
     OUT_DOC.write_text("\n".join(lines))
 
 
-def main() -> None:
+def _write_doc_v3(df: pd.DataFrame, cov: Dict[str, object]) -> None:
+    """Iteration-3 feature dictionary. Documents ONLY the v3 additions
+    (cleaned-track L1/L2 + imputation/quality); the v2 dictionary in
+    P2_FEATURES_v2.md remains the reference for the inherited columns."""
+    feat_cols = [c for c in df.columns if c not in (
+        "game_id", "play_id", "classification", "label",
+        "v1_in_scope", "split")]
+    cln_cols = sorted(c for c in feat_cols
+                      if c.startswith("cln_") or c.startswith("imp_")
+                      or c.startswith("track_quality")
+                      or c.startswith("jitter")
+                      or c.startswith("n_rejected_outlier"))
+    L: List[str] = ["# P2 Feature Dictionary (iteration 3 / v3)\n"]
+    L.append(
+        "Superset of `p2_features_v2.parquet`: every v2 column is kept "
+        "verbatim (see `P2_FEATURES_v2.md` for those) and v3 ADDS the "
+        "trajectory levers L1 (bounce-out) and L2 (arc-fit) recomputed "
+        "on the **Kalman-cleaned** ball track (`pipeline/track_clean.py`) "
+        "plus per-angle imputation / track-quality signals. The raw-"
+        "track L1/L2 (`bo_*`, `arc_*`) are UNCHANGED so the model can "
+        "use both and the ablation can isolate the cleaning effect. v1/"
+        "v2 parquet are never modified.\n")
+    L.append("## Track-cleaning pipeline (per play_id x angle)\n")
+    L.append(
+        "1. **Robust outlier rejection** — drop isolated detections "
+        "whose two-sided frame step exceeds `2.5 * rim_width` (detector "
+        "teleports onto heads/logos).\n"
+        "2. **Constant-acceleration Kalman filter + RTS smoother** on "
+        "(x,y); state = (x,vx,ax,y,vy,ay); gravity-aware process noise "
+        "(vertical accel std 4.0 > horizontal 1.5).\n"
+        "3. **Bounded gap interpolation** — expose the smoother estimate "
+        "ONLY inside occlusion gaps <=12 frames bracketed by confident "
+        "(conf>=0.30) detections on BOTH sides; longer / unbounded gaps "
+        "stay missing and are flagged (never hallucinate through a full "
+        "occlusion).\n")
+    L.append("## Coverage\n")
+    for k, v in cov.items():
+        L.append(f"- **{k}**: {v}")
+    L.append("")
+    L.append("## v3-added columns\n")
+    rationale = {
+        "cln_arc_*": "L2 arc-fit recomputed on the cleaned track "
+                     "(entry angle, vy@rim, curvature, fit residual, "
+                     "apex offset/height). De-jittered => sharper.",
+        "cln_bo_*": "L1 bounce-out recomputed on the cleaned track "
+                    "(reappearance, outward displacement, then-rises).",
+        "cln_min_dist_rw": "closest cleaned ball-rim distance "
+                           "(rim-widths).",
+        "cln_through_hoop": "clean above->below rim-plane crossing on "
+                            "the cleaned track.",
+        "cln_frac_inside_rim": "fraction of cleaned points in rim box.",
+        "imp_frac": "fraction of usable cleaned points that were "
+                    "imputed across a bounded gap (higher => weaker).",
+        "n_imputed": "# bridged frames.",
+        "n_rejected_outlier": "# raw detections killed as teleports.",
+        "track_quality": "per-angle cleaned-track reliability [0,1] = "
+                         "(0.6*coverage + 0.4*mean_conf) * "
+                         "(1 - 0.5*imputed_frac).",
+        "jitter_raw / jitter_clean": "median |2nd-diff| of the y-center "
+                                     "before / after cleaning.",
+        "jitter_reduction": "jitter_raw - jitter_clean (>0 => "
+                            "de-jittered; the cleaning sanity metric).",
+        "*_fused / *_max / *_votes (cln_)": "cross-angle aggregates of "
+                                            "the cleaned levers.",
+        "track_quality_mean/max, imp_frac_mean/min_usable, "
+        "n_rejected_outlier_total, jitter_reduction_mean":
+            "shot-level imputation/quality so the model can globally "
+            "discount unreliable shots.",
+    }
+    for k, why in rationale.items():
+        L.append(f"- `{k}`: {why}")
+    L.append("")
+    L.append(f"Total feature columns: **{len(feat_cols)}** "
+             f"(v3-added: **{len(cln_cols)}**).\n")
+    OUT_DOC_V3.write_text("\n".join(L))
+
+
+def main(argv: Optional[List[str]] = None) -> None:
+    ap = argparse.ArgumentParser(description="P2 feature dataset")
+    ap.add_argument(
+        "--version", choices=["v2", "v3"], default="v3",
+        help="v3 (default): write data/p2_features_v3.parquet with "
+             "cleaned-track L1/L2 + imputation/quality (v1/v2 untouched). "
+             "v2: rebuild the v2 file (legacy).")
+    args = ap.parse_args(argv)
+
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)
     df = build()
     if df.empty:
         raise RuntimeError("no shots produced — check input tracks")
-    df.to_parquet(OUT_PARQUET, index=False)
     cov = _coverage(df)
-    _write_doc(df, cov)
-    eprint(f"[p2] wrote {OUT_PARQUET} ({len(df)} shots, "
-           f"{df.shape[1]} cols)")
-    eprint(f"[p2] wrote {OUT_DOC}")
-    print("P2 COVERAGE:")
+    if args.version == "v3":
+        df.to_parquet(OUT_PARQUET_V3, index=False)
+        _write_doc_v3(df, cov)
+        out_pq, out_doc = OUT_PARQUET_V3, OUT_DOC_V3
+    else:
+        df.to_parquet(OUT_PARQUET, index=False)
+        _write_doc(df, cov)
+        out_pq, out_doc = OUT_PARQUET, OUT_DOC
+    eprint(f"[p2] wrote {out_pq} ({len(df)} shots, {df.shape[1]} cols)")
+    eprint(f"[p2] wrote {out_doc}")
+    print(f"P2 COVERAGE ({args.version}):")
     for k, v in cov.items():
         print(f"  {k}: {v}")
 
