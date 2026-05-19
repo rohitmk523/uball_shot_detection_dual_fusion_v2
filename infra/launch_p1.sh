@@ -33,15 +33,20 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DRY_RUN=0
 SPLIT=""
 GAME_ARGS=""
+# Default ON-DEMAND: spot reclaim lost ~48min of correct work and stalls
+# autonomous mode. On-demand has no reclaim. --spot opts back in.
+USE_ONDEMAND=1
 for a in "$@"; do
   case "$a" in
     --dry-run) DRY_RUN=1 ;;
+    --spot) USE_ONDEMAND=0 ;;
+    --on-demand) USE_ONDEMAND=1 ;;
     --split=*) SPLIT="${a#*=}"; GAME_ARGS="--split ${a#*=}" ;;
     --games=*) GAME_ARGS="--games ${a#*=}" ;;
     *) echo "unknown arg: $a" >&2; exit 2 ;;
   esac
 done
-[[ -n "$GAME_ARGS" ]] || { echo "usage: launch_p1.sh --split=train|val|test|all [--dry-run]" >&2; exit 2; }
+[[ -n "$GAME_ARGS" ]] || { echo "usage: launch_p1.sh --split=train|val|test|all [--on-demand|--spot] [--dry-run]" >&2; exit 2; }
 
 # ---- Load .env (gitignored; never echoed) ----------------------------------
 ENV_FILE="$REPO_ROOT/.env"
@@ -222,8 +227,17 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
-# ---- 7. Launch (spot, self-terminating) ------------------------------------
-echo "[launch] requesting spot $AWS_GPU_INSTANCE_TYPE ..."
+# ---- 7. Launch (self-terminating) -----------------------------------------
+# Worst-case is already priced at on-demand, so on-demand stays within the
+# same per-iteration ceiling while removing reclaim risk.
+if [[ "$USE_ONDEMAND" -eq 1 ]]; then
+  MARKET_OPTS=()
+  echo "[launch] requesting ON-DEMAND $AWS_GPU_INSTANCE_TYPE (no reclaim) ..."
+else
+  MARKET_OPTS=(--instance-market-options
+    "MarketType=spot,SpotOptions={MaxPrice=$ON_DEMAND_PRICE,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}")
+  echo "[launch] requesting SPOT $AWS_GPU_INSTANCE_TYPE (reclaim-risk) ..."
+fi
 INSTANCE_ID=$(awsbin ec2 run-instances \
   --image-id "$AMI_ID" \
   --instance-type "$AWS_GPU_INSTANCE_TYPE" \
@@ -232,14 +246,13 @@ INSTANCE_ID=$(awsbin ec2 run-instances \
   --iam-instance-profile "Name=$AWS_INSTANCE_PROFILE" \
   --instance-initiated-shutdown-behavior terminate \
   --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=$ROOT_GB,VolumeType=gp3}" \
-  --instance-market-options \
-    "MarketType=spot,SpotOptions={MaxPrice=$ON_DEMAND_PRICE,SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}" \
+  ${MARKET_OPTS[@]+"${MARKET_OPTS[@]}"} \
   --tag-specifications \
     "ResourceType=instance,Tags=[{Key=Project,Value=dual-fusion-v2},{Key=Phase,Value=$PHASE},{Key=RunId,Value=$RUN_ID}]" \
   --user-data "file://$UD" \
   --query 'Instances[0].InstanceId' --output text)
 
-echo "[launch] instance $INSTANCE_ID launched (hard cap ${HARD_CAP_MINUTES}m)."
+echo "[launch] instance $INSTANCE_ID launched ($([[ $USE_ONDEMAND -eq 1 ]] && echo on-demand || echo spot), hard cap ${HARD_CAP_MINUTES}m)."
 echo "[launch] monitor: aws ec2 describe-instances --filters Name=tag:RunId,Values=$RUN_ID"
 echo "[launch] progress: aws s3 ls $S3_WORK_PREFIX/progress/$PHASE/"
 rm -f "$UD"
