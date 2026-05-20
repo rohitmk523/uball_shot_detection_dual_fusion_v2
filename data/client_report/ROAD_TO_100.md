@@ -60,14 +60,46 @@ Every remaining model error is one of these three signals being unrecoverable fr
 
 ---
 
+## 3a. Special note: the 30 → 60 fps recording upgrade
+
+This deserves its own section because it is **the cheapest single lever** the client can pull, and it directly attacks the largest model-fixable error class (long-range swishes that the model currently misses).
+
+**The arithmetic that explains why the model misses swishes:**
+
+| Frame rate | ms / frame | Ball travel / frame | Frames inside the rim region on a swish |
+|---|---|---|---|
+| **30 fps (current)** | 33 ms | ~25 cm | **1–2, sometimes 0** |
+| **60 fps** | 17 ms | ~12 cm | 2–3 reliably |
+| 120 fps | 8 ms | ~6 cm | 5–6 |
+| 240 fps | 4 ms | ~3 cm | 8+ |
+
+A basketball moves about 25 cm between consecutive frames near the rim at 30 fps, while the rim is only ~45 cm across. **The camera physically cannot see the ball inside the rim for most of a clean swish.** That is why our weakest class is 4PT_MAKE at 73 % — the swishes that should be the *easiest* makes are the ones the model misses, because the input data does not contain them.
+
+**Expected impact of just doubling to 60 fps:**
+- 3PT_MAKE accuracy 0.83 → likely **0.88–0.92**
+- 4PT_MAKE accuracy 0.73 → likely **0.80–0.88**
+- Overall held-out test accuracy 0.89 → likely **0.91–0.93** under fair LOGO
+- Net-motion features get twice the temporal resolution → small additional lift
+
+**Costs:**
+- **Camera change**: $0 if the existing cameras already support 1080p 60 fps as a recording mode — **the most likely case**. Check with your install vendor first.
+- 2× storage and bandwidth (the videos roughly double in size)
+- ~2× extraction GPU time
+- One-time re-extraction over existing games on AWS to get matched 60 fps tracks: ~$7–10
+
+**Verdict:** if cameras support 60 fps natively, **flip the switch.** It is the highest-leverage single change in this entire document for accuracy, costs essentially nothing, and stacks cleanly with the instrumented-rim install in Tier 3.
+
+---
+
 ## 4. Recommended path for the client
 
 **Option A — Fast, cheap, retrofit (no court rebuild):**
-1. **Camera-mount audit (do today, $0).** Fixes the catastrophic outlier games. Likely +1–3 pt on the corpus average, more on a per-court basis.
-2. **Add microphones near each rim (~$50/court).** Train a 50ms audio classifier on net/iron sounds. Fuse with the existing visual model.
-3. **Instrumented-rim bracket (~$300/court).** This is the single highest-leverage hardware addition. Pairing the visual model with an "iron touched? yes/no" deterministic signal mathematically closes nearly all the remaining make/miss errors.
+1. **Switch existing cameras to 1080p 60 fps (if they support it, $0).** See §3a — directly attacks the swish-misread error class. Expected +2–4 pt accuracy on its own.
+2. **Camera-mount audit (do today, $0).** Fixes the catastrophic outlier games. Another +1–3 pt on the corpus average, much more on a per-court basis.
+3. **Add microphones near each rim (~$50/court).** Train a 50 ms audio classifier on net/iron sounds. Fuse with the existing visual model. +1–3 pt.
+4. **Instrumented-rim bracket (~$300/court).** Single highest-leverage hardware addition. Pairing the visual model with an "iron touched? yes/no" deterministic signal mathematically closes nearly all the remaining make/miss errors.
 
-Total per-court hardware budget for ~95–98% accuracy: **~$400, no court reconstruction, all retrofit, all real-time.**
+Total per-court budget for ~95–98 % accuracy: **~$400 in hardware + $0 in camera changes (if 60 fps is supported), no court reconstruction, all retrofit, all real-time.**
 
 **Option B — Pro-grade install (new court / premium tier):**
 1. Tier-1 items above (mounts, mics, 240-fps primary cameras).
