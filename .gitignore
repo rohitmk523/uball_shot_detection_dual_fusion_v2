@@ -17,3 +17,4 @@ __pycache__/
 *.pyc
 .venv/
 .DS_Store
+data/client_report/error_highlights/*.mp4
