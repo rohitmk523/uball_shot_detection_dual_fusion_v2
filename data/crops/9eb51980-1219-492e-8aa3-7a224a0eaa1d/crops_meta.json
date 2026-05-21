@@ -1,0 +1,1817 @@
+{
+  "game_id": "9eb51980-1219-492e-8aa3-7a224a0eaa1d",
+  "split": "train",
+  "crops_version": "p1c-crops-1",
+  "crops_s3_key": "s3://uball-cv-results/cv-results/dual-fusion-v2/crops/9eb51980-1219-492e-8aa3-7a224a0eaa1d/crops.npz",
+  "tracks_s3_dir": "s3://uball-cv-results/cv-results/dual-fusion-v2/tracks/9eb51980-1219-492e-8aa3-7a224a0eaa1d",
+  "n_arrays": 640,
+  "n_plays": 160,
+  "T": 16,
+  "crop_size": 64,
+  "timestamp_buffer_seconds": 2.0,
+  "roi_constants": {
+    "crop_half_w_rim_w": 1.5,
+    "crop_top_above_rim_h": 1.5,
+    "crop_bottom_below_rim_h": 2.5
+  },
+  "redetect_conf": null,
+  "redetect_status": null,
+  "git_sha": "crops-20260521T162902Z-b2",
+  "extracted_at": "2026-05-21T18:38:59.577367+00:00",
+  "per_angle": {
+    "FL": {
+      "fps": 29.97002997002997,
+      "total_frames": 94413,
+      "width": 1920,
+      "height": 1080,
+      "n_windows": 160,
+      "n_ball_detected": 160
+    },
+    "FR": {
+      "fps": 29.97002997002997,
+      "total_frames": 94413,
+      "width": 1920,
+      "height": 1080,
+      "n_windows": 160,
+      "n_ball_detected": 159
+    },
+    "NL": {
+      "fps": 29.97002997002997,
+      "total_frames": 94413,
+      "width": 1920,
+      "height": 1080,
+      "n_windows": 160,
+      "n_ball_detected": 157
+    },
+    "NR": {
+      "fps": 29.97002997002997,
+      "total_frames": 94413,
+      "width": 1920,
+      "height": 1080,
+      "n_windows": 160,
+      "n_ball_detected": 147
+    }
+  },
+  "plays": {
+    "3d758aab-90fe-4af9-908e-3e04afde79c9": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "7ec75ce3-307b-444c-83da-4bc36e75e455": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "13ae5019-449a-420e-b289-5749563e28f0": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b0d9c92d-6eac-4eb2-9d22-63b215503351": {
+      "label": 1,
+      "classification": "4PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "813f24bc-e3cf-4808-a1ad-9d318f49db2e": {
+      "label": 1,
+      "classification": "4PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "27fa77b0-33c7-48ee-85c1-48ee59895908": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "f10fa4d6-5d1f-4fe6-9e31-a16cac24fafb": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "402d6ca2-c174-4c1a-9066-cba03798dbca": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "7672ed46-a124-49ca-887b-6a58ca6a7934": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "51484941-bfa6-4df9-9092-d6311e0a5824": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ce84320f-4cbd-40ef-b2c5-3a7f1f106ec9": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "35a06b32-d819-4cbc-a63d-aedd8601b09d": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c78a56cb-6d54-4a94-abb6-dc1541737bce": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "533044b0-28a5-464c-8e90-302942ebb787": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "bbe0a369-0235-4cad-aa9b-44f8ab789c1e": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "5335160f-b006-434c-83d2-c841656a2a4f": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0a42e5e5-ad58-4674-905b-7443dfdf632d": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "64b6a3e8-e106-47c6-9142-6d1aa38662e1": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "fcb621f1-185e-4747-944f-438f5de14de5": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "101b49f0-5a60-4fcb-a17f-67c48ed9c006": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "9cb31e22-a4f2-47ef-a26a-f3f3f1f0ec30": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "61417211-1e1d-45e9-b8b1-e1cab323e1f0": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "940518b6-cd52-41ba-b481-6a18795acb39": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "4b691964-3dbc-4203-94c7-f1f1960677ce": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a6316ad2-4ff3-4926-9044-196880ab3056": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "97d77083-82ee-424f-aaf0-dc9dfce3fe84": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "cb3e82a4-43b1-4f7c-8d25-427b2a532044": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ad83b1ad-2f20-4485-8515-de3f28b77180": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "88a0c0f0-5bad-4b42-9b69-c6114d4fc138": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "eb0c6859-0e5c-45ee-ad9d-aefa3b17925f": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "f9ac9613-85d4-4e99-aee5-e011f9fdb262": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c01d87b8-7a85-4987-aca5-76b0f95a256a": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0ae201ea-e25c-4d1d-9c70-9cb675ded0cc": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b3b1d183-d01e-4100-8885-fac8ab116a28": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "5e327338-165f-469b-8223-f5fde5c1563b": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "99a825f7-60cf-4dd3-9bc7-49d30d6cae08": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c5a2b169-f81b-4d66-9de9-d382daeeee79": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "eb85c0ec-9b27-47bb-8177-6ebdd77ec577": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "21851705-f7c5-4a51-8577-d154cc737a10": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c6c8cf30-d8a2-4f53-a9da-c463b7a68007": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d5275ef4-56d9-4fdb-86bf-56f1c8549fc6": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "518b538e-2ec9-41a1-8f7f-d5cc9a64469a": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "72a2a601-f192-4acf-825b-3a0fd60235a1": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "4d29045c-f5af-43b9-9df6-32611ab24587": {
+      "label": 1,
+      "classification": "4PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "456df683-daf2-4eeb-953b-8b220d63907b": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "077a6c7b-2f71-4af7-bc89-fa734cc0ad1e": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e504d90f-4329-47ad-ac86-4ffdeec08780": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "3df06a24-4976-43ad-a74c-b6dc0d99839c": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b63aba0d-d195-4579-a1d0-136491ecb858": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "2a84bb35-21a0-4474-a2c2-28898062018f": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "9b3ae144-dfc2-4560-a00a-eeede13eebe4": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b71cb788-740a-4930-bf8b-6421b2329d97": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c872a5f3-13ab-4cb2-ae35-4c156eb74494": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a3327063-dadf-429b-b750-951041a9007b": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e0c2d0aa-155e-4305-a097-cb6e965d0de1": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "56205ffc-3f9f-41dc-bcca-10053be2a2ee": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "dfb36f5e-4d74-45ba-bfdd-f7eb8fe0dc1b": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "12d3003e-e795-4e84-bd29-23a9a2c1db2e": {
+      "label": 1,
+      "classification": "4PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d8d70520-2178-4af2-bea1-32e6000cb226": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "2ba75d9d-57b7-425b-a960-a9db483e27a6": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a644b863-1082-4bc1-907e-f82c184e5dd7": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "7c38155b-ef5f-499a-8fd9-6e89ff4f352d": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "9b017d05-bdf0-4a30-93af-b963d7b65a8d": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "43d9d5fb-9585-43d2-ad64-b0ba4c7f736d": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "5d5282bd-b3b2-4bbc-90fe-086bc5807a62": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0c904db6-ddd6-41c4-918c-187ee978833e": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "82bc7af1-159a-4c60-bc3c-cdad222e0f19": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d20b67d9-2cc3-4b3d-bb1e-3a584333e4fd": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ab474c4a-fd20-4f03-8ec1-99846c76e442": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "bc1b723e-c2e8-4b81-9ab2-678f7ba75762": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "1bdd97eb-194b-4bf3-b833-fe20b3aeb2a9": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a81a1d75-dc5c-4826-b67e-0c799d064eab": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "7602583c-a67b-487a-b50b-259e6b816710": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d1c59913-7839-49d6-8905-4807b3ed4db4": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a86bc04a-73b4-4e16-861e-c035b270440a": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b9757933-0459-459b-8807-989daa67a59d": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "bd87faf6-3549-4f26-8b5f-3e583994ede3": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d8ab1ea0-0b2c-468c-a06a-59fcd27bb69a": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c80a98e1-6a09-400d-8c68-5370f04b5224": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e26b7106-b4c5-412f-b7fb-7cec65de1a32": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ffe08dac-3ea0-43ba-ab08-14adf369f1a4": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ad8dad98-1d24-486f-9369-1e8eeffb87ae": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "50437214-9c04-4419-8d07-949de201c833": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a90dfece-98c9-4a5d-83d2-3bcbf47c1371": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "6732051e-2592-4d00-b8c3-42d78c28b210": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "90c2abbd-5cf0-4709-806f-6aa0cb88ccfc": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "351ea0e9-0904-4e27-90ff-e13adbb6bf67": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "1a650629-281d-47b5-a905-fa8cd137fafa": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "bd00e8a8-1589-46fa-b1e6-5def083029fd": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e5797a9f-5692-4dce-a37f-336e7b1208a0": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "6acf03a3-cd93-4f82-ba26-cdf2856b1fc8": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "bf278e12-0947-46dd-9d18-4ea6376661ff": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e5854f3a-ae84-4b8e-a7ab-7f12774287e9": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "507b92f8-e766-4818-9c3c-f349eb889951": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "60095eec-2254-4481-89d8-8034ddf428d8": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "71f249c3-e441-48b7-91d4-cc0d7c8b84d0": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "30833df6-f5bb-43b4-b72f-a6ba07956589": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "8935be5b-aa4b-4612-94f5-5e714e06b2e3": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "2af3e623-78ed-49ac-8f22-62c9f8af3abc": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "4c0dd5be-2cda-4ad1-ba58-f54a5235aaba": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "30a3f99b-342e-47ee-b054-1dbeff59dbea": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "fef05642-017b-491f-bfb2-9479108070a3": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "017e2a1d-2167-4839-85e3-eedcf8dd3b85": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "f2636792-d7a8-417e-a47b-0d10aa8cacce": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "901c6f96-7f48-41f4-af2e-f3444f22a2c0": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0fd17741-2dfc-46e9-a25d-3c04b94310d7": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ede89a71-9d46-427c-a829-63990f82e29c": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "62375129-b485-48c4-b794-82e8d730ff0e": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ac586dfc-94ec-47b2-8154-515219d84bae": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "87234137-274e-46dd-835a-57f17f9af669": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a774373d-9d85-4778-902e-4a7311d5ed66": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "6fb8a006-9430-4009-b23c-d08cdd4fa208": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e41363ac-f2fa-42cb-b749-8e2447613925": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "c0f44d8f-ad28-42d6-806c-09e8de66abf1": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "94935af0-1c14-4ed3-9600-bb7e227d8297": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "5303235c-c564-4087-9f89-108e79251ee0": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0093eabb-69e3-4aa9-9b11-4a2a4ecfb84b": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "6312efdd-2d24-4758-979b-07aab5acc0ad": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ba540351-ef3d-4d39-a1c9-0375cef81b92": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "8810bda0-dc4c-440b-a18f-3a1bacc8f6e9": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "12aa9331-9d63-476b-b057-565b3d9ee4de": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0e352d7d-af72-421e-87a9-b5541c32c6ef": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "16a554c1-b14b-484c-909f-b2c16d502ef3": {
+      "label": 0,
+      "classification": "3PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "7eaacb2e-4c87-4e03-806f-326779960442": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "df8df27d-8d86-4dc1-ba23-1cdfc3cec967": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0e7cb7e6-2f78-4fb0-9f23-37d03e6f47d9": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "9e9efa99-1ace-4987-8f5e-220fdda31151": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b884f33e-2fc4-4077-87df-60b765671350": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "fdd2b13a-19d7-4b72-935d-10ff992741f2": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "32eda28c-ab08-4ae3-99f4-469b7b654fad": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "75f866dd-a6af-4e69-8224-d444742a193b": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "0dd638b5-e576-4bb0-b4f6-07d9404bb304": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "11c03b8b-cd0e-42de-9bf5-3a0b6b06b145": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d70f0692-506a-428c-b3de-75fcd6be8a57": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "a862825d-4ecd-43cd-ab2b-cb9d52b71ea0": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ff213541-11fe-4ee5-a255-05bd5ba0c3b5": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "4d0c5ee9-faf5-43b7-9907-4b7584b5fbc5": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "b54e5fb1-1496-49be-948a-396a67a69352": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "e1dcde3c-33de-42bc-8008-f652e33ecf3d": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "63dcda59-312d-49e5-8674-6b445ff472f1": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "f0f2668d-7e3b-4b3b-a426-4df0dfe27b2e": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "53bb7b1a-6a65-4d7a-8c9e-a456a3b790ac": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "09eca63e-867b-4415-8975-f71ea2807d7a": {
+      "label": 1,
+      "classification": "4PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "8507c808-5acb-4779-a4cc-6ecfcbf8b597": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "22bb264b-9583-4542-a5ee-5b5d064f2ed0": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "283caba6-ed58-43d4-8391-9d5de61ee236": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "62443aa8-588f-4af5-a1cc-0c6682fc9292": {
+      "label": 1,
+      "classification": "3PT_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "d6adb9cc-8dbd-4934-9488-d5984b675e46": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "132518f4-f9a6-49f2-838c-56c7ca9085b0": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "068b7962-9381-46e5-9e17-20bb29b19c24": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "109b207d-203f-42f8-8fde-6d8fc4dd32b0": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "5a14ea06-e9de-4f53-a44c-1813374b6a22": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "687a3818-bb6a-4422-8fc6-35d1d05ab3c6": {
+      "label": 1,
+      "classification": "FREE_THROW_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "ab4eb1de-b9bb-4924-b871-61ed1c2a6d48": {
+      "label": 1,
+      "classification": "FG_MAKE",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "2cec6ec3-56c7-4e31-a51a-93f3b57a24a9": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "09ed706f-92ec-4970-8e13-e1e7881edd5d": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "67b3fc60-8bd4-4290-aaa1-4807685bc456": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "74f65446-3fc6-4289-b72c-bde4c47fd566": {
+      "label": 0,
+      "classification": "FREE_THROW_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "8811d3b9-2b8b-4fd0-a1b2-b4db9d3aa24b": {
+      "label": 0,
+      "classification": "4PT_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    },
+    "7a96569d-a5f4-4830-9061-3817e63bad52": {
+      "label": 0,
+      "classification": "FG_MISS",
+      "split": "train",
+      "angles": [
+        "FL",
+        "FR",
+        "NL",
+        "NR"
+      ]
+    }
+  }
+}

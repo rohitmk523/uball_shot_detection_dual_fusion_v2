@@ -80,6 +80,9 @@ unset _line _k _v
 : "${AWS_MAX_USD_PER_ITERATION:?}"
 : "${AWS_MAX_USD_TOTAL:?}"
 : "${S3_WORK_PREFIX:?}"
+# Allow a separate output prefix (e.g. far_v16 re-extraction) so existing
+# tracks are not overwritten. Takes precedence over the .env value.
+S3_WORK_PREFIX="${P1_WORK_PREFIX_OVERRIDE:-$S3_WORK_PREFIX}"
 : "${UPLOAD_BUCKET:?}"
 : "${AWS_INSTANCE_PROFILE:?}"
 AWS_GPU_INSTANCE_TYPE="${AWS_GPU_INSTANCE_TYPE:-g4dn.xlarge}"
@@ -201,7 +204,8 @@ S3_CODE_TARBALL="$S3_WORK_PREFIX/jobs/$RUN_ID/pipeline.tgz"
 echo "[stage] uploading pipeline/ -> $S3_CODE_TARBALL"
 awsbin s3 cp "$STAGE_TGZ" "$S3_CODE_TARBALL"
 
-FROZEN_BUNDLE_S3="s3://uball-cv-results/cv-results/dual-fusion-v2/frozen_detector_v16/frozen_detector_v16.tar.gz"
+# Default frozen bundle; override via P1_FROZEN_BUNDLE env (e.g. far_v16 swap).
+FROZEN_BUNDLE_S3="${P1_FROZEN_BUNDLE:-s3://uball-cv-results/cv-results/dual-fusion-v2/frozen_detector_v16/frozen_detector_v16.tar.gz}"
 FROZEN_BUNDLE_SHA_S3="${FROZEN_BUNDLE_S3}.sha256"
 
 # ---- Render user-data from bootstrap.sh ------------------------------------
