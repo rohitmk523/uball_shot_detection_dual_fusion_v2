@@ -29,7 +29,7 @@ GAME_ARGS="__GAME_ARGS__"                       # e.g. '--split train' or '--gam
 # legacy P1 entrypoint so default behaviour is byte-for-byte unchanged.
 P1_ENTRY="__P1_ENTRY__"
 case "$P1_ENTRY" in
-  run_batch.py|run_netmotion_batch.py) ;;
+  run_batch.py|run_netmotion_batch.py|run_crops_batch.py) ;;
   *) P1_ENTRY="run_batch.py" ;;
 esac
 HARD_CAP_MINUTES="__HARD_CAP_MINUTES__"         # integer; absolute kill switch
@@ -67,6 +67,8 @@ export AWS_DEFAULT_REGION="$AWS_REGION"
 # default entry keeps the exact legacy "P1_extract" prefix.
 if [[ "$P1_ENTRY" == "run_netmotion_batch.py" ]]; then
   PHASE="P1b_netmotion"
+elif [[ "$P1_ENTRY" == "run_crops_batch.py" ]]; then
+  PHASE="P1c_crops"
 else
   PHASE="P1_extract"
 fi

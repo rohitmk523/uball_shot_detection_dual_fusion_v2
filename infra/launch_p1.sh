@@ -51,13 +51,13 @@ for a in "$@"; do
     *) echo "unknown arg: $a" >&2; exit 2 ;;
   esac
 done
-[[ -n "$GAME_ARGS" ]] || { echo "usage: launch_p1.sh --split=train|val|test|all [--entry=run_batch|run_netmotion_batch] [--on-demand|--spot] [--dry-run]" >&2; exit 2; }
-# Normalise: accept bare module name or with .py; restrict to the two
-# known entrypoints so a typo can never run an arbitrary file.
+[[ -n "$GAME_ARGS" ]] || { echo "usage: launch_p1.sh --split=train|val|test|all [--entry=run_batch|run_netmotion_batch|run_crops_batch] [--on-demand|--spot] [--dry-run]" >&2; exit 2; }
+# Normalise: accept bare module name or with .py; restrict to the known
+# entrypoints so a typo can never run an arbitrary file.
 P1_ENTRY="${P1_ENTRY%.py}.py"
 case "$P1_ENTRY" in
-  run_batch.py|run_netmotion_batch.py) ;;
-  *) echo "unknown --entry: $P1_ENTRY (run_batch|run_netmotion_batch)" >&2; exit 2 ;;
+  run_batch.py|run_netmotion_batch.py|run_crops_batch.py) ;;
+  *) echo "unknown --entry: $P1_ENTRY (run_batch|run_netmotion_batch|run_crops_batch)" >&2; exit 2 ;;
 esac
 
 # ---- Load .env (gitignored; never echoed) ----------------------------------
