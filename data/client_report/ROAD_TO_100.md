@@ -1,7 +1,13 @@
-# Road to 100% — Why Software Has Maxed Out, and What Closes the Gap
+# Road to 100% — What Software Already Achieved, and What Closes the Last Gap
 
 **Companion to:** `CLIENT_REPORT.md`
-**TL;DR:** The video-only software approach has hit a real ceiling at ~88–92% accuracy. The remaining 8–12 % is **structurally invisible** to bounding-box computer vision. Closing the gap requires giving the system information that the pixels do not contain — through sensors. This document ranks the realistic options.
+
+**UPDATE (far_v16 detector):** An earlier draft of this doc concluded "software has maxed out at ~88–92%." **That was premature.** Swapping the far-angle detector to **far_v16** (which detects the rim ~100% of the time vs the old model's erratic 0–67%) broke through:
+- **Held-out test: 0.920 acc / 0.869 prec / 0.950 rec** (was 0.905/0.864/0.916)
+- **18-game LOGO: 0.929 / 0.902 / 0.950 — meets the ≥92/≥90/≥90 target corpus-wide; 10/18 games at target** (was 1/18)
+- The **depth-illusion false-makes went 15 → 0** — the airball-as-MAKE class is eliminated. (The earlier "unfixable in 2D" claim was wrong; it was a far-detector-quality problem.)
+
+**So the real story:** good detection got us *to target*. The remaining ~7% is **label ambiguity + intrinsic rim-grazers + 30 fps swish under-sampling** — NOT a detection or fusion deficiency (verified: 0/39 residual errors are near-detection-limited, and a near_v16 would not help). The hardware options below are now **optional polish toward a guaranteed ~100%**, not a rescue from a stuck model.
 
 ---
 
@@ -89,6 +95,30 @@ A basketball moves about 25 cm between consecutive frames near the rim at 30 fps
 - One-time re-extraction over existing games on AWS to get matched 60 fps tracks: ~$7–10
 
 **Verdict:** if cameras support 60 fps natively, **flip the switch.** It is the highest-leverage single change in this entire document for accuracy, costs essentially nothing, and stacks cleanly with the instrumented-rim install in Tier 3.
+
+---
+
+## 3c. Why 3D triangulation does NOT work (the camera-sync wall)
+
+A natural idea: we have 4 calibrated cameras — why not **triangulate the ball's true 3D position** from two views and just *measure* whether it passed through the rim plane? It would, in principle, kill the depth-illusion class outright. We investigated the capture pipeline (`gopro-automation-linux`) and the answer is **no — it's blocked by camera synchronization, and that's a capture-hardware limit, not a software one.**
+
+**What the capture rig actually does:**
+- 4 GoPro HERO12 on 2 Jetson Nano devices (NTP-synced via Tailscale).
+- **Cameras start recording sequentially** — one HTTP shutter command each. **No hardware genlock, no GoPro Labs timecode, no simultaneous trigger.**
+- Time alignment is reconstructed *after the fact* by anchoring each clip to the Jetson's NTP wall-clock. This cleverly absorbs GoPro clock drift, but its proven precision (the repo's own sync test) is **"sub-second" (<0.5 s) — explicitly NOT sub-frame.**
+
+**Why ~0.5 s sync kills triangulation:**
+- A shot ball travels ~8 m/s. In 0.5 s it moves **~4 meters.**
+- So at the decisive instant, two cameras can be looking at the ball **up to 4 m apart in time.** Triangulating those two rays yields a 3D position wrong by **meters.**
+- Triangulation needs **<33 ms (ideally <10 ms)** inter-camera sync. We have **±500 ms — 15–50× too coarse.**
+
+**No software fixes already-captured loosely-synced footage**, and there is **no "better-synced subset"** of games to fall back on: all games use the same NTP wall-clock sync (the `uball_sync_mappings` "auto_created/step_functions" field is *database record* sync — local↔cloud game/player rows — and is unrelated to angle sync; all `game` rows are `step_functions`).
+
+**The only ways to make triangulation viable:**
+1. **Re-rig capture** for true sync — hardware genlock / GoPro Labs timecode / simultaneous trigger — and **re-record** all games. (Hardware + new data.)
+2. **Audio re-sync in post:** cross-correlate the 4 GoPro audio tracks on sharp gym transients (ball bounces, whistles) to align to sub-frame. *Might* work on existing footage; unproven; would be a dedicated spike.
+
+**Verdict:** triangulation is **not worth pursuing** — option 1 is hardware + re-recording (at which point the $30 break-beam is far cheaper for the same make/miss goal), and option 2 is a speculative spike for a problem **far_v16 already solved in software** (depth-illusion 15→0). Triangulation is off the table.
 
 ---
 
