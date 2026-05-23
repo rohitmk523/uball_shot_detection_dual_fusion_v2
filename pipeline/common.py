@@ -23,11 +23,15 @@ from typing import Any, Dict, List, Optional
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Frozen detector bundle (immutable input — never mutated).
-FROZEN_BUNDLE_S3 = (
+# Overridable via FROZEN_BUNDLE_S3 env so a swapped detector (e.g. far_v16)
+# actually reaches the extraction code, not just the bootstrap download.
+FROZEN_BUNDLE_S3 = os.environ.get("FROZEN_BUNDLE_S3") or (
     "s3://uball-cv-results/cv-results/dual-fusion-v2/"
     "frozen_detector_v16/frozen_detector_v16.tar.gz"
 )
-FROZEN_BUNDLE_SHA_S3 = FROZEN_BUNDLE_S3 + ".sha256"
+FROZEN_BUNDLE_SHA_S3 = os.environ.get("FROZEN_BUNDLE_SHA_S3") or (
+    FROZEN_BUNDLE_S3 + ".sha256"
+)
 
 # Frozen ground-truth windows, pre-exported to S3 (immutable input). The
 # GPU box has NO Supabase credentials, so this is the primary GT source.

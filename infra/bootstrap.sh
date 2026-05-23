@@ -137,6 +137,11 @@ export P1_RUN_ID="$RUN_ID"
 export P1_SPOT_USD_PER_HR="$SPOT_USD_PER_HR"
 export P1_WORK_DIR="$WORK/p1_work"
 export GIT_SHA="$RUN_ID"
+# Propagate the (possibly overridden) bundle path INTO the pipeline so
+# common.py/frozen_bundle.py download the SAME detector bootstrap fetched
+# (the bug that made far_v16 a no-op: pipeline used its hardcoded default).
+export FROZEN_BUNDLE_S3="$FROZEN_BUNDLE_S3"
+export FROZEN_BUNDLE_SHA_S3="$FROZEN_BUNDLE_SHA_S3"
 
 cd "$WORK/repo/pipeline" || cd "$WORK/repo"
 echo "[p1] starting $P1_ENTRY $GAME_ARGS (phase=$PHASE)"

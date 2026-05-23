@@ -20,8 +20,11 @@ from common import (
 )
 
 WORK_DIR = Path(os.environ.get("P1_WORK_DIR", "/tmp/p1_work"))
-BUNDLE_TGZ = WORK_DIR / "frozen_detector_v16.tar.gz"
-BUNDLE_DIR = WORK_DIR / "frozen_detector_v16"
+# Name the local cache off the actual bundle file so a swapped bundle
+# (e.g. far_v16) is never shadowed by a previously-unpacked v16 dir.
+_BUNDLE_BASE = FROZEN_BUNDLE_S3.rstrip("/").split("/")[-1].replace(".tar.gz", "")
+BUNDLE_TGZ = WORK_DIR / f"{_BUNDLE_BASE}.tar.gz"
+BUNDLE_DIR = WORK_DIR / _BUNDLE_BASE
 
 
 def fetch_and_verify_bundle() -> Tuple[Path, str]:
