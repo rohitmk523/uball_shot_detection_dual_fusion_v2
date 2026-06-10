@@ -1,0 +1,600 @@
+{
+ "findings": [
+  {
+   "fp": "4692eb2b/3cf99a45_3PM",
+   "finding": {
+    "shot": "4692eb2b/3cf99a45_3PM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "other",
+    "gap_was_real": true,
+    "evidence": "Reproduced verdict via rescore_one: 'MAKE (gap-stop: ball at z=358cm r=35cm converging on rim, detection lost in net)', stop_t=3.8705 (frame 145, z=358.3, r=35.1). Gap-stop fired on a triple threshold edge: dt to next sample = 0.1668s (threshold 0.15s, exactly 5 frame intervals at 29.97fps; frames 146-149 missing -> REAL gap), prev z=358.3 (threshold z<360, 1.7cm margin), prev r=35.1 (threshold r<45). Walked tail rs 127.8/103.7/81.9/35.1, median dr=-24.1 -> 'converging' passed. But the ball REAPPEARS at frame 150 (t=4.037) at z=240.2, r=108.1, y-RIM_Y=+83.6, and that sample is ballistically continuous with the pre-gap track: pre-gap vel (f142->f145) vx=-406 vy=+469 vz=-622 cm/s predicts z=240.9 at t=4.037 vs observed 240.2 (0.7cm error). So the 'gap' was a 4-frame detector dropout, not net occlusion. Interpolating the rim-plane crossing between f145 and f150 gives cross_r=45.9cm (>MAKE_R=40) with |dy|=44.1cm and |dx|=12.9cm \u2014 the trustworthy Y axis alone shows the ball 44cm off rim center at rim height, moving laterally at vy~+469 cm/s (y: 663.0 -> 677.7 -> 724.6 -> 796.8 across f141/f142/f145/f150). Ball skimmed past the rim mouth: a miss.",
+    "post_stop_behavior": "Ball reappears 0.167s after the stop at z=240.2 r=108.1 (below rim plane but 108cm away laterally, y 84cm past rim center) in perfect ballistic continuation of the pre-gap arc; then after a 1.7s tracking hole it is seen rebounding away from the rim along the floor: r 292->315->342->410->431->477->741 while z falls 180->46 (t=5.77 to 6.57). No second descent through the rim, no rim-height reappearance near rim center, no putback. All post-stop raw samples are in-bounds.",
+    "suggested_guard": "Post-gap reappearance check inside the gap_stop_near_rim branch: before returning MAKE, find the first raw sample with t in (stop_t, stop_t+0.6s]. If it exists, extrapolate the pre-gap state ballistically (last walked position + velocity from the last 2-3 walked samples, z minus 0.5*981*dt^2). If |z_obs - z_pred| < 30cm (dropout, ball kept flying \u2014 a netted ball cannot match free-fall), then interpolate the rim-plane crossing between the stop sample and the reappearance sample; if cross_r > MAKE_R (40cm) OR |y_cross - RIM_Y| > 35cm OR reappearance r > 90cm at z < rim_z, return MISS (lateral skim) instead of MAKE. For this shot: z_pred error 0.7cm, cross_r=45.9, |dy_cross|=44.1, reappearance r=108.1 -> flips to MISS. Cheaper alternative (riskier): raise the gap threshold from 0.15s to 0.20s, which alone un-fires this 0.167s gap.",
+    "tp_risk": "Low for the reappearance guard: in a true make the net decelerates the ball hard, so any reappearance ~0.17s later sits far ABOVE the free-fall ballistic prediction (fails the |z_obs-z_pred|<30cm gate) and near rim center (r<60), so the MAKE stands; if no reappearance occurs within 0.6s the guard is inert and MAKE stands. A swish through a very loose net that keeps full velocity would pass the ballistic gate but interpolates cross_r<40 through the rim mouth, so it also stays MAKE. The riskier alternative (gap threshold 0.20s) would kill true makes whose net occlusion produces 5-6 frame gaps, so prefer the reappearance guard.",
+    "metrics": {
+     "stop_t": 3.8705,
+     "post_stop_max_z": 240.2,
+     "post_stop_min_r": 108.1,
+     "cross_r": 45.9,
+     "z_min_walked": 358.3,
+     "n_l1": 18,
+     "n_hr": 0,
+     "clip_t_max": 6.573
+    },
+    "confidence": 0.92
+   },
+   "verify": null
+  },
+  {
+   "fp": "4692eb2b/93db4aa3_FGM",
+   "finding": {
+    "confidence": 0.93,
+    "evidence": "Reproduced verdict exactly (stop_t=1.969s, n_post=14 walked). Ball dwelt ON the rim 0.467s (t=1.535-1.969, 15 samples, z 309.6-339.3, r 9.8-44.2) with a 10.6cm rim bounce inside the walk (z=319.2, r=32.6) that gap-stop pre-empted. Walked z_min=309.6 = ball NEVER crossed rim plane (304.8); no rim-plane crossing anywhere in track. Gap t=1.969->2.202 (0.233s, frames 89-94 absent) is REAL. First post-gap raw sample: z=257.4, r=49.7 (below rim plane, OUTSIDE rim mouth); free-fall from pre-gap vz=-151cm/s predicts z=248 \u2014 matches 257.4 (no net drag); lateral 35.6cm/0.233s=153cm/s outward; next sample t=2.436 z=148.6 r=106.2. Y reliable throughout (|y-713.2| <= 8cm) so not depth noise: genuine rim rattle that fell off the front.",
+    "failure_mode": "bounce_after_stop",
+    "gap_was_real": true,
+    "metrics": {
+     "clip_t_max": 6.807,
+     "cross_r": -1,
+     "n_hr": 0,
+     "n_l1": 39,
+     "post_stop_max_z": 257.4,
+     "post_stop_min_r": 49.7,
+     "stop_t": 1.969,
+     "z_min_walked": 309.6
+    },
+    "post_stop_behavior": "Ball reacquired 0.233s after gap-stop at z=257.4 r=49.7 \u2014 below rim plane but outside the rim mouth, with free-fall-consistent dz (no net deceleration) and 153 cm/s lateral velocity away from rim center (x 1994.9->1959.3->1903.1). Next sample t=2.436 z=148.6 r=106.2. Then rebound recovered: low-z samples drifting away across court (r 163->886 by t=6.81). No second descent, no putback, no rim-height reappearance (post_stop_max_z=257.4).",
+    "secondary_mode": "threshold_edge",
+    "shot": "4692eb2b/93db4aa3_FGM",
+    "suggested_guard": "Post-gap contradiction check inside descent_verdict's gap_stop_near_rim branch: before returning MAKE, scan raw in-bounds samples in (stop_t, stop_t+0.6s]; if the first reacquired sample has z < rim_z AND r > 40cm (ball center below rim plane yet outside rim mouth, geometrically impossible for a through-ball), OR any sample in that window has z in [rim_z-170, rim_z] with r > 45 and r increasing, downgrade to MISS. For this shot: first reacquisition at stop_t+0.233s with z=257.4 < 304.8 and r=49.7 > 40 -> flips to MISS. Complementary rim-dwell guard: if walked samples spent > 0.35s with z in [rim_z, rim_z+45] and r < 45 without ever crossing below rim_z (here 0.467s dwell, z_min_walked=309.6), demote gap-stop MAKE to UNDECIDED.",
+    "tp_risk": "Low for the post-gap check: a true make's ball is decelerated by the net, so 0.23s after disappearing at z=310/r=14 it cannot be at z=257/r=50 with free-fall kinematics; net-occluded makes either reappear under the basket at r<40, or much later (>0.6s) near the floor where the window has expired. Residual risk: a make whose reacquisition is actually a rebounder holding the ball at chest height ~50cm from rim center within 0.6s \u2014 mitigated by requiring z<rim_z (chest height ~150cm passes though, hence keep the r>40-at-first-reacquisition AND z<rim_z conjunction plus the 0.6s window). The rim-dwell guard is riskier (rattle-in makes also dwell), so it should demote to UNDECIDED, not MISS.",
+    "verdict_rule": "gap-stop"
+   },
+   "verify": null
+  },
+  {
+   "fp": "4692eb2b/aefd07db_FTM",
+   "finding": {
+    "shot": "4692eb2b/aefd07db_FTM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "bounce_after_stop",
+    "secondary_mode": "depth_bias_near_rim",
+    "gap_was_real": true,
+    "evidence": "Apex t=3.203 (z=432, r=64). Walker accepted 7 samples to frame 134 t=3.504: z=346.4, r=26.2; tail r 54.4->45.7->36.8->26.2 (median dr=-8.9). Next raw sample frame 144 t=3.837 -> dt=0.333s gap with prev z<360, r<45 -> gap-stop MAKE. Gap is REAL: 0 raw samples in (3.504,3.837), frames 135-143 absent. Post-gap the ball reappears at (1990.4, 804.9, z=288.6) r=93.6, |y-rimY|=91.7cm on the reliable Y axis, then moves AWAY: r 93.6->99.8->111.5->117.3->124.0->148.0 while z 288.6->203.2 over 0.27s; later rebound-area samples (t=5.74, z=149, r=190) and floor. Min post-stop r over rest of clip = 93.6cm; ball never returns near rim axis. Same-ball continuity: 71cm hop over 0.333s (213 cm/s) from last walked sample. A make at z=289 must be inside the net (r<25); r=94 there is impossible -> rim hit + lateral carom occurred inside the detection gap. Pre-gap convergence was X-driven (dx_rim +52->-39->+26->+7, noisy) while Y monotonically diverged (dy +15->+23->+26->+25), though |dy|<35 so existing Y intuition would not have caught it.",
+    "post_stop_behavior": "Ball re-detected 0.333s after gap-stop at z=288.6 (16cm below rim plane) but r=93.6cm from rim center with |y-rimY|=91.7cm, falling while moving laterally away (+Y direction): r grows 93.6->148 and z drops 288.6->203 over 0.27s, then rebound-area samples (z=149 at r=190 by t=5.74) and descent to floor far from basket. Never re-approaches rim axis (min post-stop r=93.6). Classic rim-out carom; the rim contact happened during the 0.33s occlusion gap.",
+    "suggested_guard": "Post-gap reappearance check, extending the gap_stop_near_rim branch in descent_verdict: when gap-stop fires at stop_t with last position (x0,y0), scan raw in-bounds samples with t in (stop_t, stop_t+1.0s] AND within 250cm XY of (x0,y0) (same-ball continuity). If >=2 such samples exist and the first 2 have median z in [rim_z-65, rim_z+40] (i.e., 240-345cm: ball at rim/upper-net height, above the net-exit zone) with median r > 70cm and non-decreasing r (dr >= 0), flip MAKE -> MISS (rim-out during gap). This shot: first 2 post-gap samples r=93.6/99.8 (>70), z=288.6/282.2 (in band), dr=+6.2 -> flips to MISS.",
+    "tp_risk": "True makes re-detected after the net pass appear near rim center (r<40-50) at z<260 (below net exit), so the r>70 AND z>240 conjunction should spare them; if the made ball is never re-detected at all (common, net+player occlusion), the guard is a no-op and the MAKE stands. Residual risk: a make whose ball is whipped sideways by the net and re-detected at z~250-290, r>70 within 1s \u2014 rare but possible; the 250cm continuity radius also risks matching a rebounder's tip on true makes. Requiring non-decreasing r over the first 2-3 reappearance samples and the tight z band keeps that risk low.",
+    "metrics": {
+     "stop_t": 3.504,
+     "clip_t_max": 8.008,
+     "cross_r": -1,
+     "post_stop_max_z": 288.6,
+     "post_stop_min_r": 93.6,
+     "z_min_walked": 346.4,
+     "n_l1": 44,
+     "n_hr": 0
+    },
+    "confidence": 0.93
+   },
+   "verify": null
+  },
+  {
+   "fp": "4692eb2b/bc4df0fb_FGM",
+   "finding": {
+    "shot": "4692eb2b/bc4df0fb_FGM",
+    "verdict_rule": "smooth-descent",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "insufficient_data",
+    "evidence": "Reproduced verdict exactly via rescore_one (Rule 5, not gap-stop). In-bounds apex z=373.4 at t=2.402 (apex_dxy=65.9cm); walker accepted all 7 post-apex samples, dt=0.033s, no gaps/skips. Descent: z 373.4->329.9 over t=2.402-2.569 (dz/dt -218 to -399 cm/s), r 65.9->14.8; tail median dr=-8.3 passes convergence guard (<=1.5); apex_dxy=65.9<=80 skips the z_min-rim_z<=50 proximity sub-guard. BUT z_min=329.9 = rim_z+25.1 (ball bottom ~318, never reached rim plane; ball-resting-on-rim center height is ~317). Final frame t=2.603 reverses BOTH axes: z +2.0cm (+60 cm/s after -336 cm/s) and r +2.6cm (14.8->17.5) \u2014 incipient rim bounce, but bounce detector requires >=5cm rise in z[290,360] and only 2.0cm was visible before track end. No rim-plane crossing ever (cross_r=None). Y is reliable and confirms ball over rim mouth (dy +3.2 -> -2.8cm), so not depth bias \u2014 genuine rim contact then unrecorded rim-out. Track ends at t=2.603 with clip_t=[1.0,6.0]: zero raw samples (any bounds) for remaining 3.4s.",
+    "post_stop_behavior": "Nothing \u2014 detection is permanently lost after the last walked sample at t=2.603 (clip runs to 6.0s; 3.4s with zero raw samples, in-bounds or out-of-bounds). The last frame before loss shows the ball reversing upward (+2.0cm z, +60 cm/s) and outward (+2.6cm r) at rim-rest height (z=331.9 = rim_z+27), i.e. the first frame of a rim bounce that was never re-acquired by either camera.",
+    "gap_was_real": true,
+    "suggested_guard": "Extend Rule 5 (smooth-descent MAKE) with a terminal-reversal + net-penetration check: let z_last=zs[-1], r_last=r of last walked sample. If (z_last - z_min >= 1.5cm AND r_last - r_at_zmin >= 1.5cm AND z_min > rim_z + 15), return MISS/UNDECIDED (\"incipient rim-bounce at track end\") instead of MAKE. For this shot: z_last-z_min=+2.0, r_last-r_at_zmin=+2.7, z_min-rim_z=25.1 -> flips. Equivalently/additionally: require the final accepted sample to be the z-minimum (final dz<=0) whenever z_min > rim_z+15 \u2014 a ball \"lost in net\" should be last seen still descending or with its bottom at/below the rim plane (z_min <= rim_z+15 ~= rim_z+ball_radius).",
+    "tp_risk": "True makes lost in the net are last seen still descending (net drags the ball DOWN), so a terminal z+r reversal at z_min>rim_z+15 is rare for TPs. Risk: (a) triangulation jitter (~2-3cm) faking the uptick on the last frame \u2014 mitigated by requiring BOTH z and r to rise and z_min to stay >15cm above rim plane; could raise to 2cm joint threshold for margin; (b) a rattle-in make where detection drops exactly mid-rattle (reversal frame is the last frame) would become UND/FN \u2014 such tracks are genuinely ambiguous (ball never seen below rim_z+25), so UNDECIDED is defensible; returning UNDECIDED rather than MISS minimizes TP loss.",
+    "confidence": 0.88,
+    "metrics": {
+     "stop_t": 2.603,
+     "clip_t_max": 2.603,
+     "post_stop_max_z": -1,
+     "post_stop_min_r": -1,
+     "cross_r": -1,
+     "z_min_walked": 329.9,
+     "n_l1": 20,
+     "n_hr": 0
+    }
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/f6a01c43_FGM",
+   "finding": {
+    "shot": "72c08cb7/f6a01c43_FGM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "bounce_after_stop",
+    "secondary_mode": "threshold_edge",
+    "gap_was_real": true,
+    "evidence": "Verdict reproduced bit-exact via rescore_one. Track catches only arc tail (no samples t=0.834-1.969); apex f=95 t=2.202 z=365.4 (just 60cm above rim), r=45.7. Walker accepts f=95-99: r 45.7/43.9/41.3/37.2/33.3 (med tail dr ~ -3, passes convergence gate), z 365->341. Gap-stop fires at stop_t=2.336 (z=341.4, r=33.3) because next raw sample is f=112 at t=2.769 (gap=0.434s > 0.15s); gap is REAL (zero raw frames 100-111). BUT: (a) Y stalls outside rim mouth: dy = -34.1/-31.9/-31.2 over last 3 frames vs rim radius 22.86; final r convergence 37.2->33.3 is 100% X-driven (dx +19.2->+11.8, dy flat). (b) Reacquisition kinematics rule out a make: ball reappears 0.434s later at (1760,391,26) = r=407cm, z=26cm, implied 9.0 m/s horizontal vs 1.1 m/s approach speed; ballistic net-drop would put it at z~171 near rim XY. (c) All 19 post-stop in-bounds samples: z <= 100.1, r >= 407.1 through clip end t=6.473 -- ball rebounded away, handled, never returns to rim.",
+    "post_stop_behavior": "Real 0.434s gap, then ball reappears at floor level 4m from rim (r=407, z=26, nr_conf=0.83) moving at ~9 m/s -- a hard rim-out ricochet that happened inside the gap. Subsequent in-bounds track (f=132-156, z 38-100, r 457-716) shows the rebound being dribbled/handled away; no rim-height reappearance, no second descent, no putback through clip end (t=6.473).",
+    "suggested_guard": "Post-gap reacquisition check for gap_stop_near_rim: after gap-stop fires at (stop_t, stop_xyz), scan RAW samples in (stop_t, stop_t+0.8s]. If the first in-bounds reacquired sample with nr_conf>=0.4 has z < 150cm AND r > 250cm AND implied horizontal speed from stop point > 450 cm/s (here: z=26, r=407, 900 cm/s), demote MAKE -> MISS (rim-out ricochet during gap). Require track continuity (next in-bounds sample within 150cm of the reacquired one, satisfied here by the f=132+ rebound track) to avoid reacting to a single wrong-ball grab. Optional secondary gate: at the stop sample require |y-RIM_Y| < 28cm OR final-r convergence not purely X-driven (median tail |d(dy)| contributing); here |dy|=31.2 with dy flat would also flag.",
+    "tp_risk": "Low for true makes: a made ball spends ~0.2-0.4s in the net and exits BELOW the rim near rim XY at low horizontal speed; it physically cannot be at r>400cm, z<150cm, 9 m/s within 0.43s of entering at 1.1 m/s. Main residual risk is the detector reacquiring a DIFFERENT ball far from the rim right after a real make -- mitigated by the nr_conf>=0.4 and 2-sample track-continuity requirements; a fast outlet pass after a make cannot start until the ball clears the net and is caught (>0.6-0.8s), outside the 0.8s/450cm/s window.",
+    "metrics": {
+     "stop_t": 2.336,
+     "clip_t_max": 6.473,
+     "cross_r": -1,
+     "n_hr": 0,
+     "n_l1": 65,
+     "post_stop_max_z": 100.1,
+     "post_stop_min_r": 407.1,
+     "z_min_walked": 341.4
+    },
+    "confidence": 0.88
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/d5446c0d_FGM",
+   "finding": {
+    "shot": "72c08cb7/d5446c0d_FGM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "other: gap-stop precedence ignores an already-detected 14.7cm pre-gap rim bounce (rule-4 rim-out evidence was computed in info dict but pre-empted)",
+    "evidence": "Verdict reproduced exactly with rescore_one (DESCENT_BOUNDS=1, SKIP_NOISY=1, MAX_SKIPS=8). Apex t=1.602 z=365.6 r=18.1. Ball descends to z=322.5 r=19.3 at t=1.869 (ball center 17.7cm above rim plane = rim-contact height), then BOUNCES UP +14.7cm to z=337.1 by t=2.002 \u2014 the code itself measured bounce_cm=14.66 at r_at_contact=19.3, a textbook rim-out per its own Rule 4. Second descent to z=316.4 r=24.8 at t=2.169 with r MONOTONICALLY INCREASING (last-4 r: 22.12, 23.00, 23.76, 24.77; drs +0.88,+0.76,+1.01; median +0.88) \u2014 ball drifting AWAY from rim center, but +0.88 squeaks under the +1.5 'converging' cutoff. Real 0.300s detection gap follows (zero raw samples t=2.169-2.469), so gap-stop MAKE fired at z=316 r=25. Ball never crossed rim plane (z_min_walked=316.4 > rim_z=304.8, cross_r none). Y was fine (|y-713.2|=24.2 at stop) \u2014 not a depth artifact. GT=FG_MISS consistent with post-stop track.",
+    "post_stop_behavior": "Ball reappears 0.300s after gap-stop at FLOOR level far from rim: t=2.469 z=68.9 r=624; t=2.769 z=-46.5 r=207; then rolls along floor away from rim t=4.34-4.57 (r 550 to 670, z -44 to -13). Post-stop in-bounds max z=90.3, min r=80.7 (t=4.738, z=6.8, floor \u2014 likely rebounder near rim). Ball NEVER appears below rim at rim XY; a make would drop through the net and land/bounce near r<100 within ~0.5s. This is a rim-out ricochet landing ~2m+ away.",
+    "gap_was_real": true,
+    "suggested_guard": "In the gap_stop_near_rim branch of descent_verdict, before returning MAKE: (a) tighten convergence gate from med_dr <= +1.5 to med_dr <= 0.0; and (b) add a pre-gap rim-bounce veto using the already-computed walked-window scan: if bounce_cm >= 8 with z_at_contact in [290,360] and r_at_contact < 150, AND last walked z > rim_z + 5, AND med_dr > 0, return MISS (rim-out: bounced then drifted off rim before gap) \u2014 or UNDECIDED for the 0 < med_dr <= 1.5 band if conservative. This shot trips every clause: bounce_cm=14.7, z_at_contact=322.5, r_at_contact=19.3, last z=316.4=rim_z+11.6, med_dr=+0.88.",
+    "tp_risk": "Low for guard (a): the code's own calibration comment says real-make gap-stops had med_dr -2 to -8 and game-2 FPs had +5 to +20; +0.88 sits in an untested diverging band, so med_dr<=0 spares all known true makes. Guard (b) risks rattled-in makes (which also bounce >=8cm), but it only fires when the ball is BOTH still >5cm above the rim plane AND moving outward at occlusion \u2014 physically inconsistent with dropping through; genuine rattle-ins end converging (negative dr) or sink toward rim plane before the net occludes. Residual risk: makes that swirl the rim outward then drop in on the far side just after detection loss \u2014 downgrading to UNDECIDED instead of MISS for the marginal band eliminates that cost.",
+    "metrics": {
+     "stop_t": 2.169,
+     "clip_t_max": 5.472,
+     "z_min_walked": 316.4,
+     "cross_r": -1,
+     "post_stop_max_z": 90.3,
+     "post_stop_min_r": 80.7,
+     "n_l1": 49,
+     "n_hr": 0
+    },
+    "confidence": 0.92
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/a90a5cda_FGM",
+   "finding": {
+    "shot": "72c08cb7/a90a5cda_FGM",
+    "verdict_rule": "smooth-descent",
+    "failure_mode": "putback_or_second_shot",
+    "secondary_mode": "insufficient_data",
+    "gap_was_real": true,
+    "evidence": "Two rim events in the 42-sample l1 track. Event 1 (GT-labeled shot, t=1.80-2.44): apex z=352.4 at r=42.6 (t=1.935); descended to z=327.0 at r=25.3 (t=2.169); z then ROSE +8.1cm to 335.1 by t=2.269 (rim-contact bounce inside the z=[290,360] rim band); last detection of event 1 at t=2.436 shows ball at r=94.0, z=349.4 \u2014 lateral rim-out exit at rim height. Ball then reappears LOW (z=109, r=127) at t=3.437 (rebound). Event 2 (second attempt/putback): ascent from below z=229->260 at r=100-111 (t=3.74-3.80), then over rim z=337.7->357.2 (t=4.004-4.171). Global argmax z picks event-2 apex 357.2 (beats labeled shot's 352.4 by only 4.8cm), so descent_verdict scores the putback. Walker walks 8 samples, z 356.7->319.6, r 31.5->22.6, ending at t=4.404 which is the FINAL raw sample (clip_t=[1.0,4.40]). z never crossed rim plane (304.8); z_min=319.6 = rim_z+14.8. Rule-5 smooth-descent MAKE fired (r_at_zmin=22.6<80, apex_dxy=33.6<=80 skips proximity guard, tail med_dr converging). Y is trustworthy and genuinely converging (|y-713.2|: 38.5->8.6 over t=4.0-4.4), so this is not a depth artifact \u2014 it is the wrong event with a truncated outcome. Replicated verdict exactly via rescore_one with DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8: stop_t=4.404, z_min=319.6, r=22.6, n_post=8, gap_stop=False, cross_r=None.",
+    "post_stop_behavior": "Nothing \u2014 stop_t=4.404 is the last raw sample in the file; the clip window ends at 4.40s, so the putback's outcome (make or second miss) is unobservable. \"Detection lost in net\" is actually clip-end truncation. The labeled shot's outcome (rim-out) is fully visible EARLIER in the track at t=2.17-2.44 (bounce +8.1cm then lateral exit to r=94).",
+    "suggested_guard": "Two-part guard on Rule 5 (smooth-descent MAKE): (a) clip-end guard \u2014 if the last walked sample is the final raw sample of the clip (stop_t >= t_last_raw - 0.05s, equivalently no raw frames exist after the walker stop) AND z_min > rim_z + 10, return UNDECIDED instead of MAKE (here stop_t=4.404 == t_last_raw, z_min-rim_z=14.8 -> flips). (b) prior-rim-out guard \u2014 before declaring MAKE from a chosen apex, scan samples BEFORE apex_idx for an earlier rim approach: a local z-max > 340 at r < 60 followed by a bounce >= 5cm in z=[290,360] at r < 60 and a last-seen position r > 80 at z > rim_z + 30 before the ball drops to z < 200; if found, the labeled shot already rim-outed \u2014 return MISS (rim-out) for the first event rather than scoring the later putback (here: bounce 8.1cm at z=327 r=25.3, exit r=94 z=349, then z=109 -> fires).",
+    "tp_risk": "Guard (a) is low-risk: clips carry ~1.5-2s of padding after the labeled shot (event 1 here resolved at t=2.44 with ~2.0s of clip remaining), so a true make's net-occlusion loss virtually never coincides with the literal last frame of the clip; it also degrades to UNDECIDED, not MISS. Guard (b) risks rattle-in makes (rim bounce then drop through), but the required signature includes a lateral exit to r > 80 at rim height AND a subsequent drop to z < 200 far from rim before the second apex \u2014 a rattle-in stays r < 60 and never goes low far from the rim, so true rattled-in makes (handled by the cross_r rule) are spared.",
+    "metrics": {
+     "stop_t": 4.404,
+     "clip_t_max": 4.404,
+     "post_stop_max_z": -1,
+     "post_stop_min_r": -1,
+     "cross_r": -1,
+     "z_min_walked": 319.6,
+     "n_l1": 42,
+     "n_hr": 0
+    },
+    "confidence": 0.92
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/b1de4c3a_3PM",
+   "finding": {
+    "shot": "72c08cb7/b1de4c3a_3PM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "bounce_after_stop",
+    "secondary_mode": "depth_bias_near_rim",
+    "gap_was_real": true,
+    "evidence": "Verdict reproduced exactly. Apex picked at f=80 t=1.702 (z=518.7, x=2375.8, r=372.9, nr_conf=0.215 \u2014 depth spike); skip-noisy then skipped exactly 8 consecutive first-descent samples (f81-f101, hops 264-353cm vs the spike), erasing the FIRST rim bounce: raw z_min=387.9 at r=19.8 t=1.935 (vz=-736cm/s into a 0.33s gap = rim contact) -> raw z=462.4 at r=148 t=2.503, rise=+74.5cm. Bounce also above the [290,360] detection band. Walker then treated the rattle's SECOND descent (f102-f116: z 462->352, r 148->37) as the primary descent; r-convergence is 100% X-driven (x 2156.8->2030.5, mid-arc 148cm behind rim center = behind backboard plane) while trusted Y DIVERGES: dy -3.5 -> -30.0 (~3.3cm/sample away), nr_conf 0.40/0.22 on last 2 samples. Gap-stop fired at stop_t=2.903 (z=352.3, r=37.1, med_dr=-6.68); gap=1.134s, REAL (0 raw samples inside). First reappearance t=4.037 at floor z=34.2, r=394.5, dy=-340 (same low-Y side the approach was diverging toward) \u2014 rim-out rebound landed ~4m away; 1.134s is far too long for net occlusion.",
+    "post_stop_behavior": "Ball vanishes for 1.134s then reappears at t=4.037 at floor level (z=34.2cm) at r=394.5, dy=-340 (low-Y side), then drifts away as a loose ball (r grows to ~980 by clip end t=6.24). Never reappears at rim height near the rim, never below rim plane near rim \u2014 pure rim-out rebound signature, not a ball dropping through a net (a make would reappear under the basket at r<150 within ~0.3-0.5s).",
+    "suggested_guard": "Two vetoes at the gap_stop_near_rim MAKE branch (either alone flips this shot): (1) raw-bounce veto \u2014 scan RAW in-bounds samples in [apex_t, stop_t] (not just walked post): if a local z-min < 420cm at r < 200cm is followed by a raw z-rise >= 40cm before the stop, a rim bounce already occurred; demote gap-stop MAKE -> UNDECIDED unless an actual rim-plane crossing (z < rim_z-20 at r < 40) exists (here rise=74.5cm: 387.9@r19.8 -> 462.4). (2) Y-divergence veto \u2014 over trailing 4 walked samples, if |y_last-RIM_Y| > 25cm AND median per-sample increase of |y-RIM_Y| > +1.5cm, demote -> UNDECIDED (here |dy|=30.0, diverging +3.3cm/sample, convergence purely X-driven). Optional cheap third: if first in-bounds raw sample after the gap has z<150 and r>300 with gap>0.8s, return MISS (rebound landed far; here z=34, r=394, gap=1.13s).",
+    "tp_risk": "Veto (1) requires hard raw evidence of a >=40cm rim bounce, which clean makes never show; cost is rattle-in makes whose final drop is fully net-occluded (no crossing) \u2014 these get UNDECIDED, not MISS, and rattles with visible crossings are still caught by the existing rattled-in crossing rule. Veto (2) uses the well-conditioned Y axis: a make's ball center must enter within ~rim radius (22.86cm) of RIM_Y, so |dy|>25 AND still diverging is incompatible with a clean entry; marginal off-center makes near 25cm with ~5cm Y noise are the residual risk, mitigated by demoting to UNDECIDED rather than MISS. Veto (3) is riskier (a made ball batted/outletted within 1.1s could appear far) so keep it as MISS only with the strict z<150/r>300/gap>0.8s conjunction.",
+    "metrics": {
+     "stop_t": 2.903,
+     "clip_t_max": 6.24,
+     "cross_r": -1,
+     "post_stop_max_z": 139.1,
+     "post_stop_min_r": 394.5,
+     "z_min_walked": 352.3,
+     "n_l1": 85,
+     "n_hr": 0
+    },
+    "confidence": 0.9
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/2371943d_FGM",
+   "finding": {
+    "shot": "72c08cb7/2371943d_FGM",
+    "verdict_rule": "pass-through",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "other",
+    "evidence": "Reproduced verdict exactly with DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8 on hr (173 samples). Walker: apex t=1.502 (z=550, depth spike x=2353), recovers to real descent by t=1.768 (z=412, r=52). Smooth monotone z descent 412->269, no z-bounce >=5cm. Rim-plane crossing interpolated at t=2.067, cross_r=33.2cm with dx=+1.2, dy=+33.2 \u2014 radius is ENTIRELY Y-driven and Y is the reliable axis. Ball cannot pass through rim (radius 22.86) with center 33.2cm out. dy through approach monotone increasing: +13.7(t=1.902) -> +22.6 -> +28.3 -> +33.6(cross) -> +37.7 -> +41.5: lateral fly-by on +Y side. Sub-rim divergence: r=33.6 (z=303.8) -> 42.4 (z=286.5) -> 58.0 (z=269.2); last hop = 41.6cm in 0.066s = 6.3 m/s lateral only 35cm below rim plane \u2014 impossible inside a net. Walker pass-through stop at t=2.135 (z=269.2, r=58.0, just under the r<60 stop cutoff). MAKE_R_CM=40 accepted cross_r=33.2; physical pass-through requires r < ~23.",
+    "post_stop_behavior": "114 in-bounds raw samples after stop_t=2.135 through clip end t=6.41. Ball drops to floor (z~100-180 at r 60-280 by t=2.3-2.5), then a clean low rebound arc rises to max z=249.8 at t=3.04 (r~215-230, y~850-940, lane area) and descends \u2014 classic miss-rebound bouncing away from rim. z never returns above 250 (so the bounce-back guard, which needs z >= rim_z-5=299.8, cannot fire). Min post-stop r=62.9 at t=2.269 (low NR conf 0.06). No putback, no second rim-height appearance, no second descent through rim.",
+    "gap_was_real": true,
+    "suggested_guard": "In the cross_r MAKE branch of descent_verdict: keep MAKE_R_CM=40 only as outer bound, but when cross_r >= 28 (rim_radius 22.86 + 5cm calib noise) additionally require sub-rim net confinement before calling MAKE: among walked samples with z in [rim_z-50, rim_z), require max r <= cross_r + 12 AND horizontal speed between consecutive sub-rim samples < 300 cm/s; if violated, return MISS (lateral fly-by: crossed rim plane outside mouth). For this shot: cross_r=33.2 >= 28, sub-rim r reaches 58.0 > 45.2 and lateral speed 631 cm/s -> MISS. Optional cheap complement: tighten the pass-through walker-stop condition from r<60 to r<45 so a fly-by at r=58 is not recorded as pass_through_seen.",
+    "tp_risk": "True makes cross at r < ~23 plus noise; near the rim NR looks steeply down so Y (and r) noise is small (~5-10cm), so most true makes have cross_r < 28 and skip the new check entirely. Makes in the 28-40 band (noisy crossing frame, e.g. the single-sample r spike 19.4->46.8 seen at t=1.902-1.935 here) still pass if their sub-rim samples stay net-confined (r roughly constant, lateral speed < 3 m/s), which physically holds for any ball inside the net. Residual risk: a make where the detector re-acquires a different object just below the rim within the walk window could fake divergence \u2014 bounded by requiring the violation in 2+ consecutive sub-rim samples.",
+    "metrics": {
+     "stop_t": 2.067,
+     "cross_r": 33.2,
+     "z_min_walked": 269.2,
+     "post_stop_max_z": 249.8,
+     "post_stop_min_r": 62.9,
+     "clip_t_max": 6.406,
+     "n_hr": 173,
+     "n_l1": 21
+    },
+    "confidence": 0.9
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/60aefff5_FGM",
+   "finding": {
+    "shot": "72c08cb7/60aefff5_FGM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "putback_or_second_shot",
+    "secondary_mode": "bounce_after_stop (9.7cm rim bounce detected during walk but gap_stop_near_rim pre-empts the bounce-MISS rule; ball ascended +29.6cm into the gap-stop window)",
+    "evidence": "Labeled shot: apex z=340.3 t=2.069 r=17 over rim; descended only to z=323 at t=2.402 (18cm ABOVE rim plane 304.8) with r diverging 17->31.4; min z at r<40 over WHOLE clip = 308.9 (ball never reached rim plane near mouth). Real 0.9s gap, then floor samples t=3.303/3.337 z=57-59 r=316-322 (rim-out rebound 3.2m away) \u2014 skipped as 313/308cm hops by DESCENT_SKIP_NOISY. Walker then accepted t=3.537 (z=285.2 r=71.3) 1.135s after prev accepted sample, splicing in a SECOND rim event: z ROSE 285.2->314.8 (+29.6cm post-apex), bounce detector logged contact z=305.0 bounce_cm=9.7 r=55.7, ball hovered z~313 for 0.23s, tail vz=-59cm/s (vs 200-500cm/s for net entry). Gap-stop fired at t=3.971 (z=308.9 r=29.1, med_dr=-0.20) on a REAL 1.835s gap. Post-stop raw: one sample t=5.806 floor z=44.1 r=149 y=569 (dy=-144cm). Stored file verdict was MISS (z_min=323, r=31) \u2014 FP only under SKIP_NOISY rescore.",
+    "post_stop_behavior": "Single in-bounds raw sample 1.835s later (t=5.806): ball on FLOOR at z=44.1cm, r=149cm from rim center, y=569 (144cm off rim Y) \u2014 rebound-out landing, no below-rim near-rim sample anywhere in clip. Before the stop the walked track had ASCENDED +29.6cm (285->315) and was hovering 4-10cm above the rim plane with vz=-59cm/s.",
+    "gap_was_real": true,
+    "suggested_guard": "Walk-bridge cap: in the walker loop, before accepting sample s, if s.t - post[-1].t > 0.5s then break (end of track) instead of accepting \u2014 skip-noisy may discard samples but must not bridge accepted samples across >0.5s; this shot then ends at t=2.402 (z_min=323, r diverging) -> rule-6 MISS, matching the stored verdict. Belt-and-braces on gap-stop MAKE: require last_z < rim_z+5 (310cm) OR tail vz <= -150cm/s over last 4 walked samples; if a rim-region bounce >=8cm occurred after walked z_min and neither holds, return MISS (here last_z=308.9>310 is borderline but tail vz=-59 and bounce=9.7 -> MISS).",
+    "tp_risk": "Low for the bridge cap: true gap-stop makes fire AT the net-occlusion gap (dt>0.15, converging) and never need to re-accept a sample >0.5s later \u2014 post-make floor reappearances are already hop-capped; only a >0.5s mid-descent detector flicker that resumes above the net would degrade, rare at 30fps. The vz>= -150cm/s requirement alone could kill slow rattle-in makes whose last detection is on the rim \u2014 mitigated by the OR last_z<rim_z+5 branch (a ball actually entering the net is at/below the plane on its final detection) and by only applying it when a >=8cm bounce was seen post-z_min.",
+    "metrics": {
+     "stop_t": 3.971,
+     "clip_t_max": 5.806,
+     "z_min_walked": 285.2,
+     "cross_r": -1,
+     "post_stop_max_z": 44.1,
+     "post_stop_min_r": 149,
+     "n_l1": 31,
+     "n_hr": 0
+    },
+    "confidence": 0.92
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/9dce9515_FGM",
+   "finding": {
+    "confidence": 0.85,
+    "evidence": "Reproduced verdict exactly via rescore_one. Apex z=314.8cm at t=1.268 = only rim_z+10.0cm (flat layup arc). Ball hovered in z-band [305,315] for 8 samples / 0.234s (t=1.134-1.368) with trailing median dz/dt=-68.8 cm/s (real makes pass rim plane at 250-500 cm/s). Min r over entire rim-plane episode = 25.2cm > rim radius 22.86cm \u2014 ball center geometrically never inside the rim mouth. Walked tail r: 31.6 -> 31.4 -> 25.2 -> 29.1; final dr=+3.9 (diverging), convergence guard passed only because median([-0.2,-6.1,+3.9])=-0.2 <= +1.5 (knife edge). Y reliable throughout (|y-713.2|=4.0-5.2cm); r driven by X deficit ~-29cm = ball short at front rim, fr_conf 0.63-0.67 (not depth noise). Gap real: 0 raw samples in (1.368, 3.203), 1.835s. Post-gap: reappears t=3.203 at z=44.1 r=149.0 (|y-rim|=144, Y-trustworthy), then r=404-665 at z=21-101 to clip end t=4.938 \u2014 rebound carried away, never below-rim.",
+    "failure_mode": "threshold_edge",
+    "gap_was_real": true,
+    "metrics": {
+     "stop_t": 1.368,
+     "clip_t_max": 4.938,
+     "cross_r": -1,
+     "post_stop_max_z": 100.8,
+     "post_stop_min_r": 149,
+     "z_min_walked": 308.9,
+     "n_l1": 22,
+     "n_hr": 0
+    },
+    "post_stop_behavior": "Real 1.835s detection gap (0 raw samples 1.368-3.203). First in-bounds reappearance t=3.203 at floor level z=44.1cm, r=149.0cm from rim (|y-rim|=144cm, Y-reliable), then ball moves away at floor height (z 21-101cm, r 404-665cm) through clip end t=4.938. No drop-through-net signature directly under rim, no rim-height reappearance, no second descent/putback. Consistent with rim-out rebound corralled away.",
+    "secondary_mode": "other",
+    "shot": "72c08cb7/9dce9515_FGM",
+    "suggested_guard": "In the gap-stop branch of descent_verdict (triangulate_shot.py ~line 499-510), after med_dr passes, additionally require evidence the ball was actually FALLING through the mouth: compute trailing vertical rate med_dzdt = median((z_i - z_{i-1})/(t_i - t_{i-1})) over the last 3 accepted intervals, and last_r = r of post[-1]. Gap-stop MAKE only if (med_dzdt <= -100 cm/s) OR (last_r < 15 cm); otherwise continue the walk / fall through to MISS (rim-roll: gap with ball hovering at rim height). This shot: med_dzdt=-68.8 and last_r=29.1 -> both fail -> flips to MISS. Optional second clause: also require apex_z >= rim_z + 20 (here apex-rim=10.0cm) when med_dzdt > -100.",
+    "tp_risk": "Clean makes lost in the net are falling fast when last seen (swishes cross the plane at 250-500 cm/s, well past the -100 cm/s gate). The at-risk TPs are slow rattle-in makes whose last visible sample is mid-rattle with near-zero dz/dt \u2014 but those typically end centered over the mouth (r<15) just before dropping, satisfying the OR clause; this FP had last_r=29.1 (center outside the 22.86cm rim ring, physically unable to be entering). The apex_z>=rim_z+20 variant is riskier: legitimate tip-ins/flat putbacks can have rim-height apexes, so prefer the velocity+centering gate.",
+    "verdict_rule": "gap-stop"
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/e76cd8b7_FGM",
+   "finding": {
+    "shot": "72c08cb7/e76cd8b7_FGM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "manufactured_gap",
+    "secondary_mode": "depth_bias_near_rim",
+    "gap_was_real": false,
+    "evidence": "Reproduced verdict exactly (gap_stop_near_rim=True, stop_t=1.368, stop=(2000.7,742.3,339.5), r=30.2, n_post=10). Apex f58 t=0.968 z=420.8. Walker accepted f58-f70. Raw in-bounds sample f74 EXISTS at t=1.502, only 0.133s after last accepted f70 (t=1.368) \u2014 UNDER the 0.15s gap threshold \u2014 but was skipped for hop=374.8cm (X depth spike 2000.7->1626.6). That skip stretched dt to f75 (t=1.535) to 0.167s>0.15, firing gap-stop with pz=339.5<360, prev_r=30.2<45, tail_r=[55.5,23.2,92.4,30.2], med_dr=-32.3. The 'convergence' is pure X jitter (X: 2063->2032->1918->2001) while trustworthy Y diverges monotonically PAST rim center: |y-713.2| = 2.6cm (f66,z=380) -> 18.6 -> 29.1 (stop) -> 52.4 -> 61.4 -> 66.4 -> 75.4cm at ~195cm/s; Y velocity is continuous through the 'gap' (193 vs 198 cm/s pre-gap) \u2014 ball flew long over the rim in +Y, no net dwell. Raw rim-plane crossing (f70 z=339.5 -> f75 z=272.4, skipping spike f74) interpolates to cross_r=51.5cm > 40cm physical MAKE limit. Ball never appears inside rim cylinder: post-stop min r=72.1cm.",
+    "post_stop_behavior": "Ball reacquired 0.133s after stop (f74 t=1.502) continuing the identical +Y trajectory past the rim; drops below rim plane behind/beside the rim (z=272.4 at r=72.1, z=247.7 at r=148.7, y already 61-66cm past rim center), bottoms at z=184.7 t=1.768, then RISES steadily back to z=405.8 by t=2.803 (rebound grabbed/putback motion). Classic long-miss-off-back signature; never re-enters rim cylinder (min r=72.1, never z<rim with r<35).",
+    "suggested_guard": "Real-gap verification at gap-stop: before firing gap-stop MAKE, compute dt_raw = t(earliest raw in-bounds sample after last accepted, INCLUDING noise-skipped ones) - t(last accepted); require dt_raw > 0.15s. Track this by recording skipped-sample times in the walker loop. Here dt_raw=0.133s -> gap-stop suppressed; walker then accepts f75 (hop=44cm) and the rim-plane crossing rule fires at cross_r=51.5cm > MAKE_R=40 -> 'MISS (crossed rim plane at r=51cm: ball outside rim opening)'. Note: the already-implemented DESCENT_Y_GUARD (y_off_stop>25cm) also flips this shot (y_off_stop=29.1); a Y-divergence trend guard (median d|y-rim_y| over trailing 4 accepted samples <= +1.5 cm/sample; here median +10.5) would too.",
+    "tp_risk": "Low. For true makes the net occlusion produces a REAL detection gap \u2014 no raw samples at all for 0.15-0.3s after the last accepted sample \u2014 so dt_raw>0.15 still holds and gap-stop fires unchanged. The guard only suppresses gap-stop when a raw sample was reacquired within 150ms of the last accepted frame (ball demonstrably still visible), which contradicts the 'lost in net' premise. Residual risk: a make where a different ball/noisy detection appears <0.15s after net entry would be demoted to the crossing rules, which can still return MAKE if the trajectory genuinely crossed at r<40; the suppression therefore degrades gracefully rather than hard-flipping to MISS.",
+    "metrics": {
+     "clip_t_max": 3.604,
+     "cross_r": 51.5,
+     "n_hr": 0,
+     "n_l1": 38,
+     "post_stop_max_z": 405.8,
+     "post_stop_min_r": 72.1,
+     "stop_t": 1.368,
+     "z_min_walked": 339.5
+    },
+    "confidence": 0.92
+   },
+   "verify": null
+  },
+  {
+   "fp": "72c08cb7/64081bc0_FGM",
+   "finding": {
+    "shot": "72c08cb7/64081bc0_FGM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "bounce_after_stop",
+    "gap_was_real": true,
+    "evidence": "Apex t=1.401 z=368.6 r=33. Walked descent to z_min=316.3 at t=1.702 (r=21.7) \u2014 never reached rim plane 304.8. Code's own contact detector found a rim bounce at t=1.668 z=325.0 r=20.2 bounce=+7.0cm, but gap-stop precedence overrode it. Then z plateaued 326-332 for 0.23s: trailing dz/dt=-0.9 cm/s (ball rolling on rim, not falling into net; net-entry is -300 to -500 cm/s) while r monotonically diverged 11.0->30.7 over t=1.602->1.935. Convergence guard tail drs=[+2.95,+1.49,+0.18], median +1.494 vs threshold <=+1.5 \u2014 passed by 0.006cm despite clear divergence. Real gap: frames 87->94, dt=0.234s, zero walker skips (17 contiguous walked samples). Reacquired t=2.169 at z=265.4 r=54.3 y_off=52.9; t=2.202 z=254.5 r=59.7; interpolated rim-plane crossing across the gap at r~37.5 > 34.9 physical limit. y_off_stop=29.3cm.",
+    "post_stop_behavior": "Ball reappears 0.234s after stop (t=2.169) below rim plane at z=265.4 but r=54.3 from rim center (y_off=52.9cm), outside the physical rim mouth (34.9cm), diverging further next frame (z=254.5 r=59.7) \u2014 a rim-out falling off the side, not through the net. On floor at z=14 r=333 by t=4.97. No bounce-up, no putback, no second descent.",
+    "suggested_guard": "Gap-stop MAKE must additionally require (a) trailing vertical velocity: median dz/dt over last 4 walked samples <= -100 cm/s (here -0.9 cm/s: ball rolling on rim, not dropping into net), and (b) post-gap reacquisition override: if in-bounds raw samples reappear within 0.5s of the gap at z < rim_z with r > 40cm and r increasing, flip MAKE -> MISS (here reacquired 0.234s later at r=54.3, diverging). Also: tighten the convergence median-dr threshold from <=+1.5 to <=0 (this shot passed at +1.494 with r monotonically increasing), and enable the existing DESCENT_Y_GUARD (y_off_stop=29.3 > 25cm already flips this shot, measured 7/18 FP killed, 0/45 TP).",
+    "tp_risk": "True makes lost in the net are in fast free-fall at occlusion (dz/dt typically -300 to -500 cm/s at z 310-360), so a -100 cm/s floor spares them; the repo's own Y-guard sweep showed 0/45 TP loss at y_off<=25. Risk cases: slow rattle-in makes that pause on the rim before dropping could fail the dz/dt clause \u2014 the post-gap reacquisition override mitigates this because a rattle-in either never reappears or reappears near rim center/floor without rim-height lateral divergence; tightening med_dr to <=0 is the riskiest piece since real makes can show flat r (+/-1cm) at rim center, so apply it only when no rim bounce was detected pre-gap or keep a small tolerance (<=+0.5).",
+    "metrics": {
+     "stop_t": 1.935,
+     "clip_t_max": 4.972,
+     "cross_r": -1,
+     "post_stop_max_z": 265.4,
+     "post_stop_min_r": 54.3,
+     "z_min_walked": 316.3,
+     "n_hr": 0,
+     "n_l1": 25
+    },
+    "confidence": 0.93
+   },
+   "verify": null
+  },
+  {
+   "fp": "e74164e6/623ec62d_FGM",
+   "finding": {
+    "shot": "e74164e6/623ec62d_FGM",
+    "verdict_rule": "rattled-in",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "depth_bias_near_rim",
+    "gap_was_real": true,
+    "evidence": "Reproduced verdict exactly (DESCENT_BOUNDS=1, SKIP_NOISY=1, MAX_SKIPS=8). Apex t=1.768 z=371 r=55. Rim contact t=1.935 z=339.3 r=37.4 with +12.7cm rattle bounce; ball dances on rim ~0.5s (z 332-352, r 22-50). Second descent t=2.336-2.536 (r tightens to 22.0 at t=2.402, y_off steady -20 to -22), crosses rim plane z=304.8 at t~2.52 with cross_r=37.2cm = hypot(x_off=-31.3, y_off=-20.0) \u2014 ball center OUTSIDE the 22.86cm rim mouth, yet inside MAKE_R_CM=40 by 2.8cm. Walker stopped t=2.569 (z=282.3, r=59.52) via pass-through break, clearing the r<60 cutoff by only 0.48cm; this truncation left the bounce-back guard a 2-sample tail (<3 required) so it never evaluated. y_off_stop=57.9cm. Post-stop raw: monotone ballistic rebound AWAY \u2014 z 274.8->122.1 and r 65.9->302.2 over t=2.603-3.237 (0.63s, ~370cm/s outward), y_off -62->-251 on the well-conditioned Y axis. No detection gap involved; track is continuous through the cross.",
+    "post_stop_behavior": "Smooth continuous rebound away from rim: z descends monotonically 274.8->122.1cm while r grows 65.9->302.2cm over t=2.603-3.237; y_off goes -62 to -251cm (real lateral departure, not depth noise). post-stop max z=277.0 (no re-rise above stop z, no putback, no second rim approach). After t=3.27 track decays into background clutter (other balls at z<232, r>300).",
+    "suggested_guard": "Two-part guard on the rattled-in branch (contact_idx is not None): (1) tighten the crossing radius for rattles: require cross_r <= 32cm (rim radius 22.86 + ~9cm noise) instead of MAKE_R_CM=40 \u2014 here 37.2 > 32 flips to MISS; (2) enable the already-implemented DESCENT_Y_GUARD=1 rattle clause (y_off_stop > 25 -> MISS), which fires here at 57.9cm. Additionally fix the truncation bug: do not break the walker immediately on pass_through when contact_idx exists \u2014 keep walking up to 8 more samples so the bounce-back/divergence tail can evaluate; then add a divergence check: if within 0.4s post-cross r exceeds 100cm while z stays above rim_z-90, return MISS (here r=106.5 at z=271.9 just 0.23s after cross).",
+    "tp_risk": "True rattled-in makes drop through the net: ball ends at r<40 with z plunging below ~250 near rim center, or detection is lost in the net (gap-stop path, unaffected). The cross_r 32-40cm band is documented in-code as depth-contaminated (Y-guard there kills 4/6 FP vs 1/7 TP), so tightening to 32 costs at most ~1/7 of rattled-in TPs. The post-cross divergence check (r>100 while z>rim_z-90 within 0.4s) cannot fire on a true make because a ball through the net is either occluded (gap) or tracked falling near-vertically under the rim (r stays <60 until z<200). Main residual risk: makes where the detector immediately re-grabs the ball after net exit bouncing off a body \u2014 rare and usually below z=200 by then.",
+    "metrics": {
+     "stop_t": 2.569,
+     "cross_r": 37.17,
+     "post_stop_max_z": 277,
+     "post_stop_min_r": 65.9,
+     "z_min_walked": 282.3,
+     "clip_t_max": 8.208,
+     "n_hr": 222,
+     "n_l1": 24
+    },
+    "confidence": 0.93
+   },
+   "verify": {
+    "reason": "Verdict reproduced exactly via rescore_one (DESCENT_BOUNDS=1, SKIP_NOISY=1, MAX_SKIPS=8): rattled-in branch, bounce=12.7cm at z=339.3, cross_r=37.17. All analyst metrics re-derived and match (stop_t 2.569, cross_r 37.17, post_stop_max_z 277.0, post_stop_min_r 65.9, z_min_walked 282.3, clip_t_max 8.208, n_hr 222, n_l1 24). Refutation attempts failed: (1) cross_r is NOT a depth-noise spike \u2014 x_off moves smoothly +10.9 to -33.3 over 0.2s while y_off holds steady -20 to -23, so Y corroborates an off-center crossing near the rim edge; cross_r 37.2 is outside the physical rim mouth (34.86cm in-code) yet inside MAKE_R_CM=40 by only 2.8cm \u2014 genuine threshold edge. (2) Post-stop rebound is real data, not garbage: in-bounds, frC 0.68-0.88 / nrC 0.62-0.97, smooth ballistic departure z 274.8-122.1 / r 65.9-302.2 with y_off -62 to -251 on the well-conditioned axis \u2014 GT MISS confirmed. (3) No rim-height reappearance after t=3.3 (max z 250 at r=349, min r 222) \u2014 gt_label_suspect ruled out. (4) Track continuous through walk (22 samples, 0 skips) \u2014 no manufactured gap. Counterfactuals verified live: MAKE_R_CM=32 flips to MISS (RIM-OUT); DESCENT_Y_GUARD=1 flips to MISS (rattle rejected: cross_y=20cm, y_off=58cm). bounce_after_stop fits worse: no post-stop z re-rise (277 < 282.3); the FP was decided by the 37.2<40 threshold band. Two minor non-fatal inaccuracies: the Y-guard clause is actually (cross_y_off>=15 AND y_off_stop>=20), not \"y_off_stop>25\", though it fires regardless; and fixing only the walker truncation would not flip this shot (untruncated 8-sample tail has tail_min 271.9 < rim_z-30=274.8, so the existing bounce-back guard still would not fire) \u2014 but the analyst paired that fix with a divergence check which I verified fires (r=106.5 at z=271.9, 0.24s post-cross). Primary threshold_edge with secondary depth_bias_near_rim stands.",
+    "shot": "e74164e6/623ec62d_FGM",
+    "upheld": true,
+    "revised_mode": ""
+   }
+  },
+  {
+   "fp": "e74164e6/3a8b45ba_3PM",
+   "finding": {
+    "shot": "e74164e6/3a8b45ba_3PM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "bounce_after_stop",
+    "secondary_mode": "threshold_edge",
+    "gap_was_real": true,
+    "evidence": "Walker stops at sample 19 (frame 119, t=3.003): z=319.4, r=24.1, y_off=23.9, descending ~763 cm/s. Real detection gap: frames 120-123 have zero raw samples; next raw sample at t=3.170 (gap 0.167s, just over the 0.15s threshold). Ball reappears at z=299.9 (rim plane is 304.8) at r=118.3, y_off=110.7 -- rim height but >1m laterally from rim, implied deflection speed 5.8 m/s. Walked min z = 319.4, i.e. ball never observed below the rim plane; r=24.1 > rim radius 22.86 so ball center never entered the rim cylinder. Subsequent raw track moves away: t=3.77-4.07 at r=397-476 with z bounce (min 183.2 at t=3.871, rises to 206.1 at t=4.071), then floor level z~108 from t=4.104. Approach Y was genuine (|y-713.2|: 75.9->57.3->43.9->27.5->14.0->2.9->23.9), so this is a real rim hit that rattled OUT during the gap, not a depth artifact. Shot also edges three thresholds: gap 0.167 vs 0.15s, y_off 23.9 vs 25cm Y-guard, r 24.1 vs 22.86 rim radius.",
+    "post_stop_behavior": "Ball reacquired 0.167s after stop at rim height (z=299.9, within 5cm of rim plane) but r=118.3 from rim center moving laterally away at ~5.8 m/s -- classic rim-out deflection. Never seen below rim plane near the rim; subsequent track recedes to r~400+ with a small bounce (z 183->206) and then floor/dribble level z~108.",
+    "suggested_guard": "Post-gap reacquisition check appended to the gap_stop_near_rim branch: after gap-stop fires at stop_t, scan raw in-bounds samples in (stop_t, stop_t+0.5s]; if the FIRST reacquired sample has z > rim_z - 25 (>=280cm, i.e. at/above net height) AND r > 60cm AND implied 3D speed from stop point < 10 m/s (same-ball plausibility), demote to MISS (or UNDECIDED). This shot: reacq at dt=0.167s, z=299.9 > 280, r=118.3 > 60, speed 5.8 m/s -> flips to MISS. Optionally also tighten the existing Y-guard edge: this shot passed y_off 23.9 < 25 by 1.1cm.",
+    "tp_risk": "A true make exits BELOW the net (z < ~250) near rim XY; it physically cannot be at rim height 60+cm laterally away within 0.5s of disappearing into the net, so the guard targets exactly the rim-out signature. Residual TP risk: a second ball or a player's hands/tip near the rim at rim height could spoof the reacquisition; the <10 m/s same-ball speed constraint and short 0.5s window mitigate this. Re-validate on game-2's gap-stop true makes (which were characterized by converging med_dr and no rim-height reappearance) before deploying.",
+    "metrics": {
+     "clip_t_max": 6.24,
+     "cross_r": -1,
+     "n_hr": 0,
+     "n_l1": 61,
+     "post_stop_max_z": 299.9,
+     "post_stop_min_r": 118.3,
+     "stop_t": 3.003,
+     "z_min_walked": 319.4
+    },
+    "confidence": 0.9
+   },
+   "verify": {
+    "shot": "e74164e6/3a8b45ba_3PM",
+    "upheld": true,
+    "reason": "Independent re-derivation confirms the classification. (1) Verdict attribution correct: re-running rescore_one with DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8 reproduces the exact string 'MAKE (gap-stop: ball at z=319cm r=24cm converging on rim, detection lost in net)' with stop_t=3.003, stop_xyz=(2006.0, 737.1, 319.4), y_off_stop=23.94, z_min=319.4, n_post=12. (2) Gap is real, not manufactured: the raw file contains frame 119 then frame 124 (frames 120-123 have zero raw samples anywhere in the file); dt=0.1668s > 0.15s threshold. The walker's single skipped sample (idx 11, frame 109, a transient depth hop to x=1790) is pre-gap and unrelated. (3) Convergence guard legitimately fired: trailing-4 walked r = [72.3, 55.6, 40.6, 24.1], med_dr=-16.5 <= 1.5. Descent speed at stop 765 cm/s (analyst said ~763). (4) Post-stop reacquisition is NOT garbage: sample at t=3.170 is in-bounds (x=1967.0, y=823.9, z=299.9), detected by BOTH cameras (fr_conf 0.35, nr_conf 0.49), implied 3D speed from stop point 5.82 m/s \u2014 physically plausible same-ball rim-out deflection at rim height (within 5cm of rim plane) but r=118.3 from rim center. (5) Ball never observed below rim plane near the rim: the ONLY sample in the entire clip below z=304.8 with r<120 is that reacquisition itself at r=118.3; walked z_min=319.4 > 304.8 and r_at_zmin=24.1 > 22.86 rim radius. (6) Not a depth artifact: the well-conditioned Y axis shows y_off 75.9->57.3->43.9->27.5->14.0->2.9->23.9, with y CROSSING rim_y (716.1->737.1) at +315 cm/s laterally at the stop and continuing to y_off=110.7 at reacquisition \u2014 the ball was traversing across the rim, kinematics inconsistent with net capture. (7) Subsequent track recedes to r=397-476 with z dip 183.2 (t=3.871) rising to 206.1 (t=4.071), all verified. (8) The suggested guard verifiably fires on this shot (reacq dt=0.167 < 0.5s, z=299.9 > 280, r=118.3 > 60, 5.8 < 10 m/s). All metrics in the analyst's JSON match my re-derivation (n_l1=61, clip_t_max=6.24, post_stop_max_z=299.9, post_stop_min_r=118.3). Two minor errata that do not overturn the mode: (a) the analyst misstates the Y-guard threshold as 25cm \u2014 the code (triangulate_shot.py:586) uses 22cm, so y_off 23.9 would FAIL the guard, but DESCENT_Y_GUARD is not enabled in the production env that produced this FP, so the point is moot; the threshold_edge secondary mode survives via the causal gap edge (0.167 vs 0.15s). (b) The 'floor level z~108 from t=4.104' samples sit at x~1590, a 640cm jump in 0.033s from the prior track, so they are likely a different object \u2014 immaterial to the rim-out conclusion. GT 3PT_MISS is consistent with the data; bounce_after_stop (real gap, rim-out during occlusion, rim-height lateral reappearance) is the correct primary mode.",
+    "revised_mode": ""
+   }
+  },
+  {
+   "fp": "e74164e6/e013a3bf_FGM",
+   "finding": {
+    "shot": "e74164e6/e013a3bf_FGM",
+    "verdict_rule": "gap-stop",
+    "failure_mode": "threshold_edge",
+    "secondary_mode": "bounce_after_stop",
+    "gap_was_real": true,
+    "evidence": "Reproduced verdict exactly. Apex t=1.668 z=483.8. Walker accepted 15 samples to t=2.169 (1 skip at t=1.902, hop=140cm). Gap-stop fired on a REAL 0.601s detection gap (frames 95-111 contain zero raw samples; next raw f=112 at t=2.769). Tail r over last 4 walked samples: 43.1 -> 23.9 -> 9.1 -> 24.3; drs = [-19.3, -14.7, +15.2], median -14.7 <= 1.5 so 'converging' passed even though the FINAL step diverged +15.2cm: ball crossed over rim center (r=9.1 at z=345, t=2.135) and exited the far side. Stop sample: z=309.0, r=24.3 -- ball center OUTSIDE physical rim radius 22.86cm at rim-plane height (304.8), i.e. striking the ring, yet inside the lax r<45 gap-stop envelope. y_off_stop=11.4cm so Y-guard passes; not depth bias (Y clean: 695.7->706.1->716.0->724.6 across approach). Post-gap raw: single reappearance t=2.769 at (1874,707,84): r=135cm, z=84cm, 0.60s after stop, continuing the -X carom (x 2017->1987->1874) -- inconsistent with a make (net drop is near-vertical: ~r<60 at z~140 at +0.6s). Ball then absent until t=5.61, tracked far away (r 556->959, z 50-197) as rebound is recovered. No putback, no rim-height re-rise.",
+    "post_stop_behavior": "Real 0.60s gap with no raw samples, then one in-bounds reappearance at t=2.769 at r=135cm, z=84cm on the shooter side of the rim, continuing the pre-gap lateral carom direction -- rim-out aftermath, not a net drop. After that, no detections for 2.8s, then the ball reappears at t=5.61 far from rim (r=556cm rising to 959cm, z 50-197cm) being rebounded/dribbled away. post_stop_max_z=196.8 (far from rim), post_stop_min_r=135.3; no second descent through the rim.",
+    "suggested_guard": "Tighten the gap-stop MAKE convergence guard in descent_verdict: in addition to median dr <= 1.5, require (r_stop <= 23cm [physical rim radius]) OR (last dr = tail_r[-1]-tail_r[-2] <= +5cm). This shot fails both (r_stop=24.3, last dr=+15.2) -> UNDECIDED. Additionally add a post-gap reappearance check: scan raw samples in (stop_t, stop_t+1.0s]; if the first in-bounds reappearance has z < 150cm AND r > 100cm, demote gap-stop MAKE -> MISS (rim-out carom). This shot: reappearance at +0.60s with z=84, r=135 -> MISS.",
+    "tp_risk": "The last-dr cap alone risks killing true makes whose final pre-gap detection is a single depth-noise spike (exactly why the median guard exists), but the r_stop<=23 escape keeps centered makes alive since true-make last samples sit near rim center (TP y_off med 5.5cm per code comments; r typically <20). The post-gap reappearance guard is low-risk: a made ball exits the net near-vertically and physically cannot be at r>100 with z<150 just 0.6s after detection loss at z=309; main residual risk is the detector reacquiring a different ball or a rebounder-held ball at low height, mitigated by only checking the FIRST reappearance within 1.0s.",
+    "metrics": {
+     "stop_t": 2.169,
+     "clip_t_max": 6.507,
+     "z_min_walked": 309,
+     "post_stop_max_z": 196.8,
+     "post_stop_min_r": 135.3,
+     "cross_r": -1,
+     "n_l1": 40,
+     "n_hr": 0
+    },
+    "confidence": 0.85
+   },
+   "verify": {
+    "shot": "e74164e6/e013a3bf_FGM",
+    "upheld": true,
+    "reason": "Independently re-derived every load-bearing claim from raw data and the classification survives all attacks. (1) Verdict-rule attribution correct: rescore_one (DESCENT_BOUNDS=1, DESCENT_SKIP_NOISY=1, DESCENT_MAX_SKIPS=8) reproduces 'MAKE (gap-stop: ball at z=309cm r=24cm converging on rim, detection lost in net)' exactly; info confirms gap_stop_near_rim=true, stop_t=2.169, y_off_stop=11.45. (2) Gap is real, not manufactured: walker accepted exactly 15 samples (frames 79-94) with a single skip at f=86 t=1.902 (hop=139.8cm, vel=4191cm/s, a transient depth spike that snapped back); raw file contains zero samples in frames 95-111; next raw sample f=112 at t=2.769, a genuine 0.601s gap. (3) Threshold-edge mechanics confirmed: tail_r=[43.1,23.9,9.1,24.3], drs=[-19.29,-14.72,+15.21], median -14.72 <= 1.5 so convergence passed despite the final +15.2cm divergence; stop sample r=24.35cm at z=309.0 \u2014 1.5cm OUTSIDE physical rim radius 22.86 at rim-plane height yet inside the lax r<45 envelope; min walked z=309 > 304.8 so no rim-plane crossing (cross_r none, matching analyst's -1). A genuinely marginal pass of two tunable thresholds = threshold_edge. (4) Not depth_bias_near_rim: Y (well-conditioned axis) shows clean monotone lateral motion 695.7->706.1->716.0->724.6 crossing rim_y, and the -X drift (2059.8->2048.1->2031.5->2017.4->1987.2) persists across 5 samples and continues post-gap to 1873.6 \u2014 real lateral carom, not a single-sample depth artifact; depth noise would have inflated r toward MISS, not manufactured the false MAKE. (5) Post-stop/bounce_after_stop secondary confirmed: first reappearance f=112 at +0.601s, in-bounds (1873.6,706.9,84.3) r=135.3 z=84.3, continuing the carom direction; confs are low (0.34/0.22) but the sample is spatially coherent, and the primary mode stands on pre-gap data alone regardless. (6) Not gt_label_suspect: no post-stop sample exceeds z=196.8 (no rim-height re-rise), none has r<100, no second descent; stop-step velocity vx=-905, vz=-1075 cm/s \u2014 a ball crossing the rim laterally at ~9 m/s with center outside the ring opening cannot drop clean; ball then reappears t=5.606 (2.84s later) at r=556->959 being moved away. (7) All metrics match: stop_t=2.169, z_min_walked=309, post_stop_max_z=196.8, post_stop_min_r=135.3, n_l1=40, n_hr=0, clip_t_max=6.507 (last-sample t). Suggested guard verified against this shot's numbers: r_stop=24.35 fails r<=23 and last dr=+15.21 fails <=+5 (-> UNDECIDED); reappearance z=84<150 and r=135>100 (-> MISS demotion). Note the stored JSON 'verdict' field reads MISS from an older scoring run, but the audited pipeline configuration reproduces the MAKE gap-stop verdict exactly, so the audit targeted the correct rule."
+   }
+  },
+  {
+   "fp": "454da9cf/cf296fb6_3PM",
+   "finding": {
+    "shot": "454da9cf/cf296fb6_3PM",
+    "verdict_rule": "rattled-in",
+    "failure_mode": "other",
+    "secondary_mode": "threshold_edge",
+    "gap_was_real": true,
+    "evidence": "Reproduced verdict exactly with DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8. Apex f67 t=1.268 z=543.9. Clean approach to r=3.1cm at f83 (t=1.802, z=332.1), rim rattle bounce=+13.3cm (z 332->347), then ball rolls OFF: r 3.1->35.4cm, y 713->678 (y_off 35cm on the trustworthy Y axis), z down to 320.2 at f96 t=2.236 \u2014 never below rim plane 304.8 in any pre-gap sample. Gap-stop correctly rejected (trailing median dr=+2.16 > 1.5, diverging). Then a REAL 1.368s detection gap (frames 97-136 absent). Walker ACCEPTED post-gap f137 t=3.604 (z=185.4, r=95.8, fr_conf 0.30, nr_conf 0.21) because hop=83.6cm < 250cm cap. Crossing rule interpolated z=304.8 across the (t=2.236, z=320.2)->(t=3.604, z=185.4) pair: phantom cross at cross_r=38.1 < MAKE_R=40, cross y_off=34.5cm (physical lip limit rim+ball=34.86cm); y_off_stop=71.8cm. Root cause: rim-plane crossing interpolation has no dt limit and bridged a 1.368s real gap; the below-rim endpoint is the rebound ball re-detected 1.4s later, not a pass-through. Bounce-back guard couldn't fire (tail_min 185.4 < rim_z-30). DESCENT_Y_GUARD (not enabled this run) would already flip it via the rattled-in rule (cross_y_off 34.5>=15 AND y_off_stop 71.8>=20).",
+    "post_stop_behavior": "After last near-rim sample (t=2.236, z=320.2, r=35.4, diverging, above rim plane): raw track empty for 1.368s (real gap, frames 97-136), then 3 low-confidence in-bounds samples (fr 0.25-0.40, nr 0.21-0.31) at z=185-203, r=80-96 \u2014 rebound ball at player height away from the rim, with z RISING 185.4->203.1 (gather/possible putback motion) as the clip ends at t=3.737. No second descent through the rim; no observed below-rim sample near rim center anywhere in the clip.",
+    "suggested_guard": "In descent_verdict's rim-plane crossing scan (~line 597), reject crossing pairs separated by a detection gap: require (post[i+1]['t'] - post[i]['t']) <= 0.25s, optionally relaxed to <=0.5s only if the below-rim sample itself has r < 60cm. Here the only crossing pair has dt_pair=1.368s and below-rim r=95.8 -> no crossing -> falls through to Rule 4 rim-contact bounce (bounce=13.3cm at r_at_contact=3.1 < 150) -> 'MISS (RIM-OUT)', the correct verdict. Complementary: enable DESCENT_Y_GUARD=1, whose rattled-in rule (cross_y_off>=15 AND y_off_stop>=20) independently flips this shot (34.5/71.8). Also consider hard-stopping the walker on dt > 0.5s regardless of hop size \u2014 a sub-250cm hop over 1.37s is a re-acquisition, not tracking continuity.",
+    "tp_risk": "Low. Observed below-rim samples on true makes occur within 1-3 frames (dt<=0.1s) of the last above-rim sample; makes whose final approach is net-occluded are already handled by the gap-stop MAKE rule (dt>0.15s + converging tail), which does not depend on crossing interpolation. A 0.25s dt cap only removes crossings synthesized across multi-frame blackouts, which cannot be physically observed pass-throughs. Residual risk: a rattle-in make occluded ~0.3-0.5s that reappears below rim near rim center \u2014 covered by the r<60 relaxation (this FP fails it at r=95.8). The prior Y-guard sweep on June games measured 6/6 FP killed, 0/7 TP lost for the rattled-in Y rule.",
+    "metrics": {
+     "stop_t": 2.236,
+     "cross_r": 38.1,
+     "post_stop_max_z": 203.1,
+     "post_stop_min_r": 80.1,
+     "z_min_walked": 185.4,
+     "clip_t_max": 3.737,
+     "n_l1": 38,
+     "n_hr": 0
+    },
+    "confidence": 0.93
+   },
+   "verify": {
+    "shot": "454da9cf/cf296fb6_3PM",
+    "upheld": true,
+    "reason": "Every load-bearing claim re-derived from raw data and code. Verdict reproduces verbatim via rescore_one (rattled-in branch, triangulate_shot.py:647): bounce=13.31cm at z=332.1 r=3.12 (f83), roll-off r 3.1->35.4 / y 713.0->678.4 on trustworthy Y, pre-gap z min 320.2 (never below rim plane). Gap is genuinely real: frames 97-136 absent from raw JSON, all 38 samples in-bounds, zero walker skips (n_post=27 = all post-apex samples) \u2014 refutes manufactured_gap. Gap-stop rejection exact (trailing median dr=+2.16>1.5); walker accepted f137 on XY hop 83.6<250 across dt=1.368s; phantom crossing cross_r=38.13<40, cross_y_off=34.55, y_off_stop=71.76; bounce-back guard blocked (tail_min 185.4 < 274.8). DESCENT_Y_GUARD=1 empirically flips to MISS (rattle rejected, cross_y=35 y_off=72); dt-cap fall-through to Rule 4 MISS (RIM-OUT) verified in code. Refutation attempts failed: bounce_after_stop/wrong_ball presuppose a ball identity the data cannot establish (post-gap nr_px teleports (1489,342)->image corner (79,119), Y jumps 100cm/0.1s, conf 0.21-0.40 \u2014 not a coherent bounce track); gt_label_suspect fails (no below-rim near-center reappearance anywhere, lateral roll-off at lip limit consistent with MISS); threshold_edge correctly secondary (cross_r Y-dominated 34.5 vs 16.1 depth, within 2cm of 40, but the crossing is interpolation-synthesized, not observed). 'Other' with root cause 'crossing interpolation has no dt limit, bridged a 1.368s real gap' is the most defensible primary mode. Minor nit only: analyst metrics stop_t=2.236 uses their last-near-rim convention vs walker stop_t=3.737, explicitly defined in their narrative.",
+    "revised_mode": ""
+   }
+  }
+ ],
+ "synthesis": {
+  "mode_summary": [
+   {
+    "mode": "threshold_edge",
+    "count": 8,
+    "shots": [
+     "4692eb2b/3cf99a45_3PM",
+     "4692eb2b/bc4df0fb_FGM",
+     "72c08cb7/d5446c0d_FGM",
+     "72c08cb7/2371943d_FGM",
+     "72c08cb7/9dce9515_FGM",
+     "72c08cb7/64081bc0_FGM",
+     "e74164e6/623ec62d_FGM",
+     "e74164e6/e013a3bf_FGM"
+    ]
+   },
+   {
+    "mode": "bounce_after_stop",
+    "count": 5,
+    "shots": [
+     "4692eb2b/93db4aa3_FGM",
+     "4692eb2b/aefd07db_FTM",
+     "72c08cb7/f6a01c43_FGM",
+     "72c08cb7/b1de4c3a_3PM",
+     "e74164e6/3a8b45ba_3PM"
+    ]
+   },
+   {
+    "mode": "putback_or_second_shot",
+    "count": 2,
+    "shots": [
+     "72c08cb7/a90a5cda_FGM",
+     "72c08cb7/60aefff5_FGM"
+    ]
+   },
+   {
+    "mode": "manufactured_gap",
+    "count": 1,
+    "shots": [
+     "72c08cb7/e76cd8b7_FGM"
+    ]
+   },
+   {
+    "mode": "other (rim-plane crossing interpolated across a real multi-second gap)",
+    "count": 1,
+    "shots": [
+     "454da9cf/cf296fb6_3PM"
+    ]
+   }
+  ],
+  "guards": [
+   {
+    "name": "post_gap_reappearance_contradiction",
+    "rule": "Hook: inside the gap_stop_near_rim MAKE branch (triangulate_shot.py line ~586), before returning MAKE. After gap-stop fires at stop sample (t0, x0,y0,z0), scan the cached in-bounds samples with t > t0 (the same `samples` array \u2014 no video needed). Let s1 = first such sample, dt1 = s1.t - t0, r1 = hypot(x1-rim_x, y1-rim_y), speed = 3D dist((x0,y0,z0),(x1,y1,z1))/dt1. Clause R1 (rim-height lateral escape): if dt1 <= 0.6s AND speed < 1200 cm/s AND z1 >= rim_z-25 (>=279.8) AND r1 > 60 -> MISS. Clause R2 (below plane, outside mouth): if dt1 <= 0.8s AND speed < 1200 AND z1 < rim_z-10 (<294.8) AND r1 > 45, and (no second in-bounds sample within 0.3s of s1, or its r >= r1-5, i.e. not converging back under the rim) -> MISS (a ball below the rim plane yet >45cm from rim axis within 0.8s of 'entering the net' is geometrically impossible for a make). Clause R3 (far-floor ricochet): if dt1 <= 1.2s AND z1 < 150 AND r1 > 300 AND >=2 in-bounds samples with z<150 exist in (t0, t0+1.5s] -> MISS. If no reappearance exists, guard is inert and MAKE stands.",
+    "pseudo_code": "# in gap_stop_near_rim branch, before 'return MAKE (gap-stop...)'\nt0 = post[-1]['t']; x0,y0,z0 = post[-1]['X_cm']\nreacq = [s for s in samples if s['t'] > t0]\nif reacq:\n    s1 = reacq[0]; dt1 = s1['t'] - t0\n    x1,y1,z1 = s1['X_cm']; r1 = hypot(x1-rim_x, y1-rim_y)\n    speed = dist3d((x0,y0,z0),(x1,y1,z1)) / dt1\n    if dt1 <= 0.6 and speed < 1200 and z1 >= rim_z-25 and r1 > 60:\n        return info, 'MISS (gap rim-out: reappeared at rim height r=%dcm)' % r1   # R1\n    if dt1 <= 0.8 and speed < 1200 and z1 < rim_z-10 and r1 > 45:\n        s2 = first in-bounds sample in (s1.t, s1.t+0.3]\n        if s2 is None or r(s2) >= r1 - 5:\n            return info, 'MISS (gap rim-out: below plane at r=%dcm, outside mouth)' % r1  # R2\n    low = [s for s in reacq if s['t'] <= t0+1.5 and s['X_cm'][2] < 150]\n    if dt1 <= 1.2 and z1 < 150 and r1 > 300 and len(low) >= 2:\n        return info, 'MISS (gap rim-out: rebound on floor at r=%dcm)' % r1        # R3\nreturn info, 'MAKE (gap-stop: ...)'",
+    "kills_fps": [
+     "4692eb2b/3cf99a45_3PM",
+     "4692eb2b/93db4aa3_FGM",
+     "4692eb2b/aefd07db_FTM",
+     "72c08cb7/f6a01c43_FGM",
+     "72c08cb7/d5446c0d_FGM",
+     "72c08cb7/b1de4c3a_3PM",
+     "72c08cb7/64081bc0_FGM",
+     "e74164e6/3a8b45ba_3PM",
+     "e74164e6/e013a3bf_FGM"
+    ],
+    "tp_risk": "Low. A true make's ball is decelerated hard by the net: it either is never re-detected (guard inert, MAKE stands) or exits BELOW the rim near rim center (r < 40-50, low speed, ~0.3-0.6s later) \u2014 outside all three clause envelopes; a netted ball physically cannot be at rim height >60cm laterally (R1), below the plane >45cm out and diverging (R2), or 3m+ away on the floor (R3) within these windows. The speed<1200cm/s gate on R1/R2 and the 2-sample z<150 confirmation on R3 protect against wrong-ball reacquisitions. Residual risk: a make whipped sideways by a loose net re-detected at r 45-60 \u2014 mitigated by the non-decreasing-r confirmation in R2. Re-validate on game-2's gap-stop TPs (converging med_dr, no rim-height reappearance per prior characterization) before deploy.",
+    "rank_reason": "Highest yield: flips 9/17 audited FPs outright to MISS with a single physically-grounded mechanism (the post-stop cached samples directly contradict 'lost in net'), and it is structurally TP-inert whenever no contradicting reappearance exists. Six independent analysts converged on variants of this rule; verifiers confirmed the trigger values on 3a8b45ba and e013a3bf."
+   },
+   {
+    "name": "enable_descent_y_guard",
+    "rule": "Set DESCENT_Y_GUARD=1 in the production environment (alongside DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8). The guard is already implemented in descent_verdict with pre-measured June thresholds: gap-stop MAKE requires y_off_stop <= 22cm (line 586); rattled-in MAKE rejects cross_y_off >= 15 AND y_off_stop >= 20 (line 643); clean-cross MAKE rejects y_off_stop > 40 (line 651); smooth-descent MAKE rejects y_off_stop > 20 (line 701). Y is the well-conditioned triangulation axis, so lateral Y offset at the stop is trustworthy where depth X is not.",
+    "pseudo_code": "# no code change \u2014 flip the existing env flag in the production scorer:\n# DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8 DESCENT_Y_GUARD=1\n# kill paths for this audit:\n#  e76cd8b7: gap-stop y_off_stop=29.1 > 22 -> suppressed -> cross_r=51.5 > 40 -> MISS\n#  64081bc0: gap-stop y_off_stop=29.3 > 22 -> suppressed -> cascades to MISS\n#  623ec62d: rattled-in cross_y=20>=15 & y_off=58>=20 -> MISS (verified live)\n#  cf296fb6: rattled-in cross_y=34.5>=15 & y_off=71.8>=20 -> MISS (verified live)\n#  aefd07db: gap-stop y_off=25 > 22 -> suppressed -> Rule 5 y_off 25 > 20 -> MISS\n#  3a8b45ba: gap-stop y_off=23.9 > 22 -> suppressed -> Rule 5 y_off 23.9 > 20 -> MISS",
+    "kills_fps": [
+     "72c08cb7/e76cd8b7_FGM",
+     "72c08cb7/64081bc0_FGM",
+     "e74164e6/623ec62d_FGM",
+     "454da9cf/cf296fb6_3PM",
+     "4692eb2b/aefd07db_FTM",
+     "e74164e6/3a8b45ba_3PM"
+    ],
+    "tp_risk": "Pre-measured on June games per in-code comments: gap-stop clause 3 FP / 0 TP; rattled-in clause 6/6 FP / 0/7 TP; smooth-descent clause 5/7 FP / 0/7 TP; clean-cross y>40 clause 3/4 FP / 1/27 TP \u2014 total known cost ~1 TP for many FPs killed, strongly net-positive under the symmetric FP/TP cost model. Caveat: aefd07db (y_off=25) and 3a8b45ba (y_off=23.9) sit 1-3cm over the thresholds, so the 22/20cm cut is operating near its edge; verify the 86-TP set's y_off distribution (June TP gap-stop max was 20.1cm) before relying on it alone.",
+    "rank_reason": "Zero implementation cost (already coded, env flag), 6 audited FPs killed (4 verified live or by code-trace, 2 derived from the cascade), and the only guard here with measured TP impact. Ranked second only because guard 1 covers more shots and is fully orthogonal (kills depth-symmetric FPs like 3cf99a45 where Y looks fine)."
+   },
+   {
+    "name": "gap_integrity_and_track_continuity",
+    "rule": "Three bookkeeping fixes to gap/continuity handling. (a) Genuine-gap check: gap-stop may only fire if NO raw in-bounds sample \u2014 including ones discarded by DESCENT_SKIP_NOISY \u2014 exists within 0.15s of the last accepted sample; track t_prev_iter across skipped samples and require both (s.t - post[-1].t) > 0.15 and (s.t - t_prev_iter) > 0.15. (b) Walk-bridge cap: never accept a sample with s.t - post[-1].t > 0.5s; break the walk instead (a sub-250cm hop over >0.5s is re-acquisition of a different event, not tracking continuity). (c) Crossing-pair dt cap: in the rim-plane crossing scan (line ~598), only interpolate across pairs with dt <= 0.25s, relaxed to <= 0.5s when the below-rim sample has r < 60cm \u2014 an observed pass-through is 1-3 frames, never a multi-second blackout.",
+    "pseudo_code": "# (a)+(b) in walker loop (line ~481)\nt_prev_iter = post[-1]['t']\nfor s in samples[apex_idx+1:]:\n    dt_acc = s['t'] - post[-1]['t']; dt_raw = s['t'] - t_prev_iter\n    if dt_acc > 0.15 and dt_raw > 0.15 and pz < 360 and prev_r < 45:\n        ...existing gap-stop med_dr logic...          # (a) only genuine gaps\n    if dt_acc > 0.5:\n        break                                          # (b) bridge cap\n    ...existing hop/skip logic...\n    t_prev_iter = s['t']                               # update even when skipped\n# (c) crossing scan (line ~598)\nfor i in range(len(zs)-1):\n    dt_pair = post[i+1]['t'] - post[i]['t']\n    if zs[i] >= rim_z and zs[i+1] < rim_z and \\\n       (dt_pair <= 0.25 or (dt_pair <= 0.5 and r(post[i+1]) < 60)):\n        ...interpolate cross_r...",
+    "kills_fps": [
+     "72c08cb7/e76cd8b7_FGM",
+     "72c08cb7/60aefff5_FGM",
+     "454da9cf/cf296fb6_3PM"
+    ],
+    "tp_risk": "Near-zero \u2014 these are correctness fixes, not new thresholds. (a) For true net-occluded makes there are zero raw samples in the gap, so dt_raw == dt_acc and gap-stop fires unchanged; it only suppresses when the ball was demonstrably still visible <150ms after the last accepted frame (e76cd8b7 then degrades gracefully to the crossing rule: cross_r=51.5 > 40 -> MISS). (b) True makes converging into the net trigger gap-stop (0.15s) long before any 0.5s bridge would be needed; only a >0.5s mid-descent detector flicker that resumes above the net would degrade to UNDECIDED \u2014 rare at 30fps. (c) Observed below-rim samples on true makes occur within 1-3 frames of the last above-rim sample; net-occluded makes go through the gap-stop path which does not use crossing interpolation; the r<60 relaxation keeps 0.3-0.5s occluded rattle-ins alive (cf296fb6 fails it at r=95.8).",
+    "rank_reason": "Fewer kills (3) than guards 1-2 but the highest confidence per kill: each fixes a demonstrable logic bug (manufactured gap, 1.1-1.4s event splicing, interpolation across a 1.368s blackout) with essentially no physical mechanism by which a true make is affected. All three shots fall through to the correct existing MISS rule rather than being force-flipped."
+   },
+   {
+    "name": "gap_stop_net_entry_kinematics",
+    "rule": "Hook: gap_stop_near_rim MAKE branch, after guards 1-3 (requires moving the rim-bounce contact scan before the gap-stop return, or computing it locally). Gap-stop MAKE additionally requires evidence the ball was actually FALLING into the net when lost: med_dzdt = median dz/dt over the last 3 accepted intervals <= -100 cm/s, OR (last_r < 15cm AND last_z <= rim_z+10) (centered ball settling through the mouth). If neither holds, dispose as: MISS when last_r > 23cm (ball center outside the 22.86cm rim ring \u2014 physically cannot be entering) OR med_dr > 0 (diverging) OR (a pre-gap rim bounce >= 8cm at r_at_contact < 150 was seen AND last_z > rim_z+5); else UNDECIDED. Additionally tighten the gap-stop convergence gate from med_dr <= +1.5 to med_dr <= +0.5 (calibration: real-make gap-stops had med_dr -2 to -8; FPs here passed at +0.88 and +1.494).",
+    "pseudo_code": "# in gap_stop_near_rim branch (after reappearance + Y guards)\nmed_dzdt = median((z[i]-z[i-1])/(t[i]-t[i-1]) for last 3 accepted intervals)\nlast_r = r(post[-1]); last_z = z(post[-1])\nfalling  = med_dzdt <= -100.0                 # cm/s\ncentered = last_r < 15 and last_z <= rim_z + 10\nbounce_pre = exists i in walked post: 290<=z[i]<=360, r[i]<150, max(z[i+1:i+6])-z[i] >= 8\nif not (falling or centered):\n    if last_r > 23 or med_dr > 0 or (bounce_pre and last_z > rim_z + 5):\n        return info, 'MISS (rim-roll: gap at rim height without net-entry kinematics)'\n    return info, 'UNDECIDED (gap-stop without net-entry kinematics)'\n# and: gap-stop convergence gate med_dr <= 0.5  (was 1.5)",
+    "kills_fps": [
+     "72c08cb7/9dce9515_FGM",
+     "72c08cb7/64081bc0_FGM",
+     "72c08cb7/60aefff5_FGM",
+     "72c08cb7/d5446c0d_FGM",
+     "4692eb2b/93db4aa3_FGM"
+    ],
+    "tp_risk": "Moderate-low. Swishes and clean makes cross the rim plane at 250-500 cm/s, far past the -100 cm/s gate; slow rattle-in makes that pause on the rim pass via the centered escape (r<15) or, failing that, land in UNDECIDED (half cost) rather than MISS \u2014 the hard MISS requires last_r > 23 (center outside the physical ring), outward drift, or a measured >=8cm bounce while still above the plane, each individually incompatible with a ball entering the mouth. The med_dr tightening to +0.5 sits in the empirically untested +0 to +1.5 band (known TPs were -2 to -8). Riskiest piece is killing a rattle-in last seen mid-rattle at r 15-23 hovering: it gets UNDECIDED, not MISS. 93db4aa3 (0.467s rim dwell, ~-65 cm/s) is a probable but not arithmetically verified kill; the other four trip the gate on stated numbers (-68.8, -0.9, -59 cm/s; +0.88 med_dr / 14.7cm bounce).",
+    "rank_reason": "Catches the rim-roll/rim-dwell family (slow vz at occlusion) that guard 1 misses when the rebound reappears outside its time windows (9dce9515 at +1.835s) and that the Y-guard misses when the roll-off is X-symmetric (9dce9515 y_off 4-5cm). Ranked below guards 1-3 because its thresholds are new (not pre-measured) and one kill is probabilistic; the UNDECIDED fallback bounds the downside."
+   },
+   {
+    "name": "rule5_clip_end_and_terminal_reversal",
+    "rule": "Hook: Rule 5 smooth-descent MAKE branch (line ~697), before returning MAKE. (e2) Terminal-reversal: if zs[-1] - z_min >= 1.5cm AND r_last - r_at_zmin >= 1.5cm AND z_min > rim_z + 15 -> MISS (incipient rim bounce at track end: ball last seen reversing up and out while never within 15cm of the rim plane). (e1) Clip-end truncation: if no raw samples (any bounds) exist after stop_t (the walker stop is the literal last detection in the clip) AND z_min > rim_z + 10 -> UNDECIDED (outcome unobservable; 'lost in net' is actually clip-end truncation, often of a putback the apex selector latched onto). Check e2 before e1.",
+    "pseudo_code": "# Rule 5 branch, after med_dr/Y checks pass, before 'return MAKE (smooth descent...)'\nr_last = r(post[-1])\nif zs[-1] - z_min >= 1.5 and r_last - r_at_zmin >= 1.5 and z_min > rim_z + 15:\n    return info, 'MISS (incipient rim-bounce at track end: z+%.1f r+%.1f at z_min=rim+%.0f)' \\\n        % (zs[-1]-z_min, r_last-r_at_zmin, z_min-rim_z)          # e2: bc4df0fb\nif not any(s['t'] > post[-1]['t'] for s in all_raw_samples) and z_min > rim_z + 10:\n    return info, 'UNDECIDED (track ends at clip end above rim plane: outcome unobservable)'  # e1: a90a5cda",
+    "kills_fps": [
+     "4692eb2b/bc4df0fb_FGM",
+     "72c08cb7/a90a5cda_FGM"
+    ],
+    "tp_risk": "Low. e2: a ball entering the net is dragged DOWN \u2014 true makes lost in the net are last seen still descending or with z_min within ~ball-radius of the rim plane, so a joint z AND r reversal at z_min > rim_z+15 is not a make signature; ~2-3cm triangulation jitter is the residual risk, bounded by requiring both axes to reverse plus the 15cm height floor (a rattle-in whose detection drops exactly on the reversal frame becomes a MISS \u2014 genuinely ambiguous tracks, rare). e1: clips carry ~1.5-2s padding after the labeled shot, so a true make's net-occlusion virtually never coincides with the literal final frame (a90a5cda's labeled shot resolved 2.0s before clip end); and e1 only demotes to UNDECIDED (half cost), never MISS.",
+    "rank_reason": "Only guard covering the two Rule-5 FPs (bc4df0fb full-value MISS, a90a5cda half-value UNDECIDED), including the putback_or_second_shot truncation case. Small blast radius and conservative dispositions; ranked fifth because it addresses 2 shots and e1 yields half value."
+   },
+   {
+    "name": "sub_rim_net_confinement_for_offcenter_cross",
+    "rule": "Hook: the cross_r < MAKE_R MAKE branch (line ~607), applied to both the rattled-in and clean pass-through paths, only when cross_r >= 28cm (rim radius 22.86 + ~5cm calibration noise; crossings below 28 skip the check entirely). A real through-ball is confined by the net just below the plane, so among walked samples with z in [rim_z-50, rim_z): require max r <= cross_r + 12cm AND lateral XY speed between consecutive sub-rim samples < 300 cm/s; if violated -> MISS (lateral fly-by / rim-out that clipped the plane outside the mouth). Companion walker fix: when contact_idx is not None, do not break immediately on pass_through (line ~526-528) \u2014 walk up to 8 more samples so the sub-rim tail exists for this check and for the existing bounce-back guard (623ec62d's truncation left a 2-sample tail).",
+    "pseudo_code": "# inside 'if cross_r is not None and cross_r < _make_r:' before MAKE returns\nif cross_r >= 28:\n    sub = [s for s in post if rim_z-50 <= z(s) < rim_z]\n    if sub:\n        viol_r = max(r(s) for s in sub) > cross_r + 12\n        viol_v = any(hypot(dx,dy)/dt > 300 for consecutive sub-rim pairs)\n        if viol_r or viol_v:\n            return info, 'MISS (fly-by: crossed plane at r=%dcm but not net-confined below rim)' % cross_r\n# walker change: on pass_through with contact_idx pending, continue up to 8 more samples\n# instead of breaking immediately",
+    "kills_fps": [
+     "72c08cb7/2371943d_FGM",
+     "e74164e6/623ec62d_FGM"
+    ],
+    "tp_risk": "Low-moderate. Most true makes cross at r < 23 + small noise (near the rim the cameras look steeply down, so r noise is ~5-10cm), hence cross_r < 28 and the check never runs. Makes in the 28-40 band pass when their sub-rim samples stay net-confined (r roughly constant, lateral speed < 3 m/s \u2014 physically guaranteed inside a net); the in-code June data marks this exact band as depth-contaminated (Y-guard there kills 4/6 FP vs 1/7 TP), and this kinematic check is strictly more permissive for TPs than tightening MAKE_R to 32 would be. Residual risk: detector re-grabbing a different object just below the rim faking divergence \u2014 mitigated by extending the walk (more sub-rim samples) and by the 300 cm/s/+12cm conjunction; 2371943d violates by 631 cm/s and +24.8cm, 623ec62d by +22.3cm with verified post-cross r=106.5 at z=271.9.",
+    "rank_reason": "Covers the pass-through FP (2371943d, cross_r=33.2 entirely Y-driven, unreachable by gap-stop guards) and double-covers 623ec62d alongside the Y-guard. Ranked last because it touches the MAKE-richest branch (crossing rules carry most TPs) and its 2 kills are partly redundant with guard 2."
+   }
+  ],
+  "notes": "Scope: 17 verified FP findings were supplied from the 30-shot audit (4692eb2b x4, 72c08cb7 x9, e74164e6 x3, 454da9cf x1). Four findings carried adversarial verification (623ec62d, 3a8b45ba, e013a3bf, cf296fb6); all were upheld with no revised modes, so primary failure_mode labels stand as analyzed. Verdict-rule breakdown of the 17: gap-stop 12, smooth-descent 2, rattled-in 2, pass-through 1 \u2014 the gap-stop MAKE branch (triangulate_shot.py ~line 499/586) is the dominant FP source and is where guards 1, 3, 4 hook. The recurring physical signal: in 11/12 gap-stop FPs the cached post-stop samples directly contradict 'lost in net' (rim-height lateral reappearance, below-plane-outside-mouth reappearance, far-floor ricochet, or hovering/diverging terminal kinematics); only the data already in the per-shot sample cache is needed \u2014 no video. Union coverage: the 6 guards flip 16/17 FPs to MISS and 1/17 (a90a5cda) to UNDECIDED, with heavy overlap (64081bc0 covered by 3 guards, e76cd8b7/cf296fb6/60aefff5/623ec62d/aefd07db/3a8b45ba by 2 each), so individual guard regressions degrade gracefully. Known TP cost from already-measured pieces: ~1/27 TP on the Y-guard clean-cross clause (June data); all newly proposed guards are designed to be inert absent contradicting data or to demote to UNDECIDED in ambiguous bands. Probabilistic kills flagged in-text: 93db4aa3 under guard 3 (rim-dwell vz ~-65 cm/s inferred, not re-derived) and the two cascade kills of guard 2 (aefd07db, 3a8b45ba) which were code-traced through the Rule-5 Y clause rather than run live. Recommended next step: stack guards in rank order and rescore the full 280-shot set under DESCENT_BOUNDS=1 DESCENT_SKIP_NOISY=1 DESCENT_MAX_SKIPS=8 DESCENT_Y_GUARD=1, gating acceptance on zero regressions among the 86 TPs (especially game-2's gap-stop TPs, whose signature \u2014 converging med_dr, fast terminal vz, no rim-height reappearance \u2014 sits outside every guard envelope proposed here). If these 17 generalize to the remaining 13 audited FPs, expected confusion shift is roughly FP 30 -> ~14, lifting decided accuracy from 74.3% toward ~80% before any FN work."
+ }
+}

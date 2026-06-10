@@ -1,0 +1,471 @@
+[
+ {
+  "name": "be88796f_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (crossed rim plane at r=44cm > 40cm: ball outside rim opening)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "f637ec85_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=16cm at z=322cm, r=9cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "4550de07_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (crossed rim plane at r=78cm > 40cm: ball outside rim opening)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "6b5c114a_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=309cm r=10cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "c0561c2b_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (crossed rim plane at r=69cm > 40cm: ball outside rim opening)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "4212aea4_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "UNDECIDED (no samples)",
+  "layer": "none",
+  "cat": "UND"
+ },
+ {
+  "name": "d6f21989_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=15cm, z_min=276cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "02c4e018_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (rattle rejected: bounce=21cm then cross at r=37cm but lateral off-center cross_y=21cm & y_off=25cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "623ec62d_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (rattle rejected: bounce=13cm then cross at r=37cm but lateral off-center cross_y=20cm & y_off=58cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "72817eab_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=308cm r=2cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "b41149c2_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (crossed rim plane at r=197cm > 40cm: ball outside rim opening)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "9cc18726_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MISS (RIM-OUT: bounce=24cm at z=355cm, r=26cm)",
+  "layer": "L1",
+  "cat": "FN"
+ },
+ {
+  "name": "2c0015ef_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=330cm r=15cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "1ae1de21_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "UNDECIDED (only 1 clean post-apex samples)",
+  "layer": "none",
+  "cat": "UND"
+ },
+ {
+  "name": "8cc7a91b_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=301cm r=3cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "dd43e897_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=20cm at z=342cm, r=22cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "b352d046_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (crossed rim plane at r=56cm > 40cm: ball outside rim opening)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "557beede_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=10cm, z_min=283cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "a579fc53_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MAKE (gap-stop: ball at z=317cm r=26cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "FP"
+ },
+ {
+  "name": "864af8e6_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=21cm at z=351cm, r=23cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "8e07ac7c_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (z_min=318cm, r=267cm \u2014 no clear make signal)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "0d5ba955_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MISS (crossed rim plane at r=87cm > 40cm: ball outside rim opening)",
+  "layer": "L1",
+  "cat": "FN"
+ },
+ {
+  "name": "3a8b45ba_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (smooth descent rejected: z=319cm r=24cm but lateral off-center y_off=24cm > 20cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "d9797bf1_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=305cm r=6cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "ea3c2bfd_FTM",
+  "gt": "FREE_THROW_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=6cm at z=318cm, r=86cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "ae9caf66_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=305cm r=6cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "1d85262f_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=40cm, z_min=281cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "bba713fc_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=318cm r=7cm converging on rim, detection lost in net)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "e0dc71d0_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (z_min=313cm, r=45cm \u2014 no clear make signal)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "fe92453a_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=22cm, z_min=276cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "3e49e70e_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=310cm r=2cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "551f6419_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "MISS (crossed rim plane at r=250cm > 40cm: ball outside rim opening)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "252eda7d_3PM",
+  "gt": "3PT_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=11cm at z=324cm, r=47cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "856e8625_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=316cm r=30cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "7149587f_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=312cm r=1cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "3eb94c11_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=308cm r=3cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "c108399e_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=29cm, z_min=282cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "5f315787_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=154cm at z=349cm, r=14cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "e163997c_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=14cm, z_min=65cm)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "580f1890_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "MAKE (lateral-centered crossing: cy=22cm, r=117cm is depth-biased, z_min=198cm)",
+  "layer": "L4-hires",
+  "cat": "FP"
+ },
+ {
+  "name": "4901bf07_FTM",
+  "gt": "FREE_THROW_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=35cm at z=315cm, r=34cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "141fc418_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "UNDECIDED (only 1 clean post-apex samples)",
+  "layer": "none",
+  "cat": "UND"
+ },
+ {
+  "name": "28f7c1d8_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=22cm at z=337cm, r=5cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "a0789714_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "UNDECIDED (only 1 clean post-apex samples)",
+  "layer": "none",
+  "cat": "UND"
+ },
+ {
+  "name": "54f850c5_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MISS (RIM-OUT: bounce=7cm at z=350cm, r=22cm)",
+  "layer": "L4-hires",
+  "cat": "FN"
+ },
+ {
+  "name": "2ff9e0eb_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=9cm at z=338cm, r=48cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "2ee59e7c_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (lateral-centered crossing: cy=8cm, r=204cm is depth-biased, z_min=243cm)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "1736fede_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (lateral-centered crossing: cy=15cm, r=98cm is depth-biased, z_min=126cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "99105d1b_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (lateral-centered crossing: cy=8cm, r=53cm is depth-biased, z_min=197cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "cd43d428_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (lateral-centered crossing: cy=8cm, r=85cm is depth-biased, z_min=112cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "3dee42f1_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (centered crossing r=18cm cy=10cm; net-hover tail overridden)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "c121c0e1_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=12cm, z_min=282cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "2dd479ec_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=360cm r=25cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "b4b76dfb_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=310cm r=1cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "7ecb2c3a_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=24cm at z=346cm, r=35cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "17da4224_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MISS (crossed rim plane at r=64cm > 40cm: ball outside rim opening)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ },
+ {
+  "name": "1b489023_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=312cm r=6cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "0c074e4f_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (smooth descent to z=318cm at r=7cm, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "f13f61fb_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (passed through rim plane at r=7cm, z_min=302cm)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "9154f7d1_3PM",
+  "gt": "3PT_MAKE",
+  "verdict": "MAKE (lateral-centered crossing: cy=24cm, r=60cm is depth-biased, z_min=276cm)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "e013a3bf_FGM",
+  "gt": "FG_MISS",
+  "verdict": "MAKE (gap-stop: ball at z=309cm r=24cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "FP"
+ },
+ {
+  "name": "f81ac0f1_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "MAKE (passed through rim plane at r=4cm, z_min=257cm)",
+  "layer": "L4-hires",
+  "cat": "FP"
+ },
+ {
+  "name": "66d334f5_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=308cm r=2cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "cfbbf0c5_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=327cm r=12cm converging on rim, detection lost in net)",
+  "layer": "L4-hires",
+  "cat": "TP"
+ },
+ {
+  "name": "2170e22d_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=42cm at z=348cm, r=82cm)",
+  "layer": "L1",
+  "cat": "TN"
+ },
+ {
+  "name": "ad90573d_FGM",
+  "gt": "FG_MAKE",
+  "verdict": "MAKE (gap-stop: ball at z=308cm r=3cm converging on rim, detection lost in net)",
+  "layer": "L1",
+  "cat": "TP"
+ },
+ {
+  "name": "486e2361_4PM",
+  "gt": "4PT_MISS",
+  "verdict": "MISS (RIM-OUT: bounce=10cm at z=336cm, r=40cm)",
+  "layer": "L4-hires",
+  "cat": "TN"
+ }
+]
