@@ -97,9 +97,25 @@ def main() -> int:
               f"= {r['frames']:+6.2f} frames  (peak {r['peak']:.0f}x)")
         frames.append(r["frames"])
     if frames:
-        print(f"median offset: {np.median(frames):+.2f} frames "
-              f"(n={len(frames)})")
+        est, support = cluster_estimate(frames)
+        print(f"median offset: {np.median(frames):+.2f} frames (n={len(frames)})")
+        print(f"CLUSTER offset: {est:+.2f} frames "
+              f"({support}/{len(frames)} windows within ±1.25)")
     return 0
+
+
+def cluster_estimate(frames: list, tol: float = 1.25) -> tuple[float, int]:
+    """Densest-cluster estimator: music creates scattered false peaks, but
+    true-offset windows agree to ~±1 frame. For each window, count
+    neighbours within tol; the largest neighbourhood's mean is the offset.
+    (Validated 2026-06-10 vs 5 manual marks: ±1 frame.)"""
+    arr = np.asarray(frames, dtype=float)
+    best_n, best_mean = -1, 0.0
+    for c in arr:
+        sel = arr[np.abs(arr - c) <= tol]
+        if len(sel) > best_n:
+            best_n, best_mean = len(sel), float(sel.mean())
+    return best_mean, best_n
 
 
 if __name__ == "__main__":

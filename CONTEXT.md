@@ -626,6 +626,43 @@ is OBSOLETE — FT-mark/audio sync gives ±1 frame post-hoc.
 measured-sync games (3 val + 2 re-synced June, ~539 tri shots + fusion
 preds); test pool = remaining ~24 annotated 4-angle games, untouched.
 
+### Session 2026-06-11 — ARBITER v1 (hybrid 94.2% → 95.6% on dev overlap)
+
+Expanded the fusion∩tri overlap to **449 shots / 5 games** by running
+triangulation on b3c1f62c, cc5deb39, f3e7b25a (full automated chain:
+clips → clip-audio sync → re-cut → SAM3 calib → pipeline + repair pass;
+scripts: `extract_val_clips.py`, `clip_audio_sync.py`,
+`repair_val_game.py`, `run_val_games.py`).
+
+**Clip-audio sync is now production equipment** (`clip_audio_sync.py`):
+cross-correlate audio of already-downloaded clip pairs → density cluster
+→ +1.3-frame acoustic correction (rim sound reaches NR mic first; venue
+constant, calibrated vs 5 manual marks, ±1-2 frames). EVERY new game
+measured so far had a wrong default: b3c1f62c +12, cc5deb39 +7,
+f3e7b25a +7 (assumed +13). Per-game measurement is mandatory.
+
+**Six-game out-of-sample triangulation aggregate: 83.8% dec / 79.7% ovr
+(526 shots)** — stable 79-87% dec across every unseen game.
+
+**Arbiter zones (449-shot overlap):** fus=MISS → 99.6% right (never
+touch). fus=MAKE ∧ tri=MAKE → 93.6% makes. ∧ tri=UND → 90.6% makes.
+∧ tri=MISS (n=48, 27% real misses) → the gate zone.
+
+**Gate v1 (per-game safe, validated on 2.5× the data it was found on):**
+- `fus_prob < 0.99` → +9/−3 → hybrid **95.55%** (max gain)
+- `apex_r ≤ 150 ∧ fus_prob < 0.99` → +6/−1 → hybrid **95.32%**
+  (86% veto precision — RECOMMENDED: protects fusion's 0.997 recall)
+- oracle +13 → 97.1%. Untouchable remainder: 4 good vetoes where fusion
+  is ≥0.99-confident-and-wrong; needs stronger tri-confidence features.
+
+Caveat: gates were SELECTED on these 5 games. Honest final number needs
+the untouched test pool (~24 games). Artifacts: `arbiter_dataset.json`
+(builder: `pipeline/arbiter_dataset.py`).
+
+**Next:** (1) test-pool eval of fusion+gate end-to-end on 2-3 fresh
+games; (2) tri-confidence features for the ≥0.99 zone; (3) left-basket
+(FL/NL) bring-up doubles all of this.
+
 ### Caveats / next steps
 
 1. **OVERFIT WARNING (critical):** three rounds of threshold fitting on the
