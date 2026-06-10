@@ -1,0 +1,762 @@
+[
+ {
+  "name": "2870ed5e_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 13.8,
+  "t_end": 18.2,
+  "angle": "RIGHT",
+  "play_id": "2870ed5e-cd03-4096-8262-77fd0d34a4b1"
+ },
+ {
+  "name": "fa7abbae_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 43.6,
+  "t_end": 48.4,
+  "angle": "RIGHT",
+  "play_id": "fa7abbae-96ec-45a1-99a5-423728ce28bf"
+ },
+ {
+  "name": "b7c5c6bd_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 104.0,
+  "t_end": 107.4,
+  "angle": "RIGHT",
+  "play_id": "b7c5c6bd-9bca-4184-b4dc-790d120a26d2"
+ },
+ {
+  "name": "4b58a1b9_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 126.4,
+  "t_end": 130.0,
+  "angle": "RIGHT",
+  "play_id": "4b58a1b9-eb95-466f-acd6-1c9e1fcf2524"
+ },
+ {
+  "name": "b09a5838_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 149.8,
+  "t_end": 155.4,
+  "angle": "RIGHT",
+  "play_id": "b09a5838-2513-4a64-980c-6ff8a56caa33"
+ },
+ {
+  "name": "84b65781_FGM",
+  "gt": "FG_MISS",
+  "t_start": 204.4,
+  "t_end": 207.0,
+  "angle": "RIGHT",
+  "play_id": "84b65781-9226-4769-9e00-73fe506aaf3f"
+ },
+ {
+  "name": "cda1f11f_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 208.0,
+  "t_end": 210.6,
+  "angle": "RIGHT",
+  "play_id": "cda1f11f-e461-43d0-be11-c4b483eb7b8a"
+ },
+ {
+  "name": "fcfa6572_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 222.0,
+  "t_end": 225.8,
+  "angle": "RIGHT",
+  "play_id": "fcfa6572-22d6-42dc-af42-ad21b49a2211"
+ },
+ {
+  "name": "887780fa_FGM",
+  "gt": "FG_MISS",
+  "t_start": 251.4,
+  "t_end": 254.8,
+  "angle": "RIGHT",
+  "play_id": "887780fa-5dad-4ed2-82f0-c1b435672ad3"
+ },
+ {
+  "name": "80ce264f_4PM",
+  "gt": "4PT_MAKE",
+  "t_start": 265.6,
+  "t_end": 270.0,
+  "angle": "RIGHT",
+  "play_id": "80ce264f-f83c-4f23-89e3-7d3e1b9b646c"
+ },
+ {
+  "name": "d0cf50c5_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 291.8,
+  "t_end": 295.0,
+  "angle": "RIGHT",
+  "play_id": "d0cf50c5-7f15-4b77-b112-ccf631774f00"
+ },
+ {
+  "name": "841ffbc9_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 320.4,
+  "t_end": 324.2,
+  "angle": "RIGHT",
+  "play_id": "841ffbc9-c484-4325-bdd9-ce08e24d360e"
+ },
+ {
+  "name": "1323c354_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 333.2,
+  "t_end": 336.0,
+  "angle": "RIGHT",
+  "play_id": "1323c354-5341-4c88-87b3-dd23d8a0c95a"
+ },
+ {
+  "name": "0762f8bc_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 346.2,
+  "t_end": 350.6,
+  "angle": "RIGHT",
+  "play_id": "0762f8bc-67b3-4bc5-b520-35e5e6db707c"
+ },
+ {
+  "name": "063e9cdf_FGM",
+  "gt": "FG_MISS",
+  "t_start": 386.8,
+  "t_end": 391.8,
+  "angle": "RIGHT",
+  "play_id": "063e9cdf-119b-4e43-9682-49ff565bc0dc"
+ },
+ {
+  "name": "60e867a9_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 411.4,
+  "t_end": 415.4,
+  "angle": "RIGHT",
+  "play_id": "60e867a9-5c75-40e8-890d-efa3b6a77333"
+ },
+ {
+  "name": "2e37e9db_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 431.2,
+  "t_end": 435.4,
+  "angle": "RIGHT",
+  "play_id": "2e37e9db-c22d-465b-a6d4-47eb649ce530"
+ },
+ {
+  "name": "7b63be41_4PM",
+  "gt": "4PT_MAKE",
+  "t_start": 539.8,
+  "t_end": 543.0,
+  "angle": "RIGHT",
+  "play_id": "7b63be41-a41b-4ec7-affb-32f6210b48e9"
+ },
+ {
+  "name": "620e63a5_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 577.2,
+  "t_end": 584.0,
+  "angle": "RIGHT",
+  "play_id": "620e63a5-ccc4-4637-b6e3-9bbd1abc4fde"
+ },
+ {
+  "name": "70312a09_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 600.8,
+  "t_end": 604.6,
+  "angle": "RIGHT",
+  "play_id": "70312a09-ac97-4cee-8683-8331aced9a6c"
+ },
+ {
+  "name": "0440e3d6_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 621.2,
+  "t_end": 626.8,
+  "angle": "RIGHT",
+  "play_id": "0440e3d6-f55c-4b7b-bb4b-6f2d97b8e521"
+ },
+ {
+  "name": "fffd05b0_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 658.0,
+  "t_end": 662.6,
+  "angle": "RIGHT",
+  "play_id": "fffd05b0-d88f-46a3-b04b-bfe98a4c3b0a"
+ },
+ {
+  "name": "89feefc5_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 680.4,
+  "t_end": 684.6,
+  "angle": "RIGHT",
+  "play_id": "89feefc5-07c4-46fc-9ce6-dd65ef2de42a"
+ },
+ {
+  "name": "27be231c_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 692.6,
+  "t_end": 696.4,
+  "angle": "RIGHT",
+  "play_id": "27be231c-aa81-4f00-b801-5dac58df69fa"
+ },
+ {
+  "name": "470353b5_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 723.4,
+  "t_end": 726.8,
+  "angle": "RIGHT",
+  "play_id": "470353b5-265e-4453-aa06-3b333fb95c19"
+ },
+ {
+  "name": "5ef8d53d_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 770.4,
+  "t_end": 774.8,
+  "angle": "RIGHT",
+  "play_id": "5ef8d53d-69a2-4175-be20-02f96c980799"
+ },
+ {
+  "name": "dfb0684b_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 809.4,
+  "t_end": 813.8,
+  "angle": "RIGHT",
+  "play_id": "dfb0684b-a3ba-4f41-95b2-ab61aa84f773"
+ },
+ {
+  "name": "780163f9_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 839.2,
+  "t_end": 842.6,
+  "angle": "RIGHT",
+  "play_id": "780163f9-4b63-46f3-a41a-23076f7ed0bc"
+ },
+ {
+  "name": "c67810ca_FGM",
+  "gt": "FG_MISS",
+  "t_start": 862.2,
+  "t_end": 864.8,
+  "angle": "RIGHT",
+  "play_id": "c67810ca-1f4c-477e-b45d-0a2a9c6945d4"
+ },
+ {
+  "name": "f172f5dc_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 909.0,
+  "t_end": 913.6,
+  "angle": "RIGHT",
+  "play_id": "f172f5dc-b0e4-4b0f-bd9a-161c5e9d36b0"
+ },
+ {
+  "name": "c885117f_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 922.6,
+  "t_end": 925.8,
+  "angle": "RIGHT",
+  "play_id": "c885117f-6b1b-4bc0-b5d3-71e6b9ef1948"
+ },
+ {
+  "name": "0a206792_FGM",
+  "gt": "FG_MISS",
+  "t_start": 939.0,
+  "t_end": 942.6,
+  "angle": "RIGHT",
+  "play_id": "0a206792-4ea4-4094-a036-39af892d8f47"
+ },
+ {
+  "name": "b298195a_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 965.2,
+  "t_end": 968.4,
+  "angle": "RIGHT",
+  "play_id": "b298195a-ec1d-4a1c-9041-b1972acfd7b2"
+ },
+ {
+  "name": "81e1031f_3PM",
+  "gt": "3PT_MAKE",
+  "t_start": 1021.2,
+  "t_end": 1024.4,
+  "angle": "RIGHT",
+  "play_id": "81e1031f-ac3a-4c87-b571-3545935213fa"
+ },
+ {
+  "name": "996ec279_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 1083.6,
+  "t_end": 1087.2,
+  "angle": "RIGHT",
+  "play_id": "996ec279-ed80-40c0-a7e5-2d239e12cdff"
+ },
+ {
+  "name": "a4fb9b66_FGM",
+  "gt": "FG_MISS",
+  "t_start": 1116.4,
+  "t_end": 1119.8,
+  "angle": "RIGHT",
+  "play_id": "a4fb9b66-ebec-4c66-99c5-b49194e9099e"
+ },
+ {
+  "name": "36d68e4e_FGM",
+  "gt": "FG_MISS",
+  "t_start": 1118.6,
+  "t_end": 1120.6,
+  "angle": "RIGHT",
+  "play_id": "36d68e4e-b3fe-4244-ab4f-8dceb96c230b"
+ },
+ {
+  "name": "61ce4b0f_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 1137.4,
+  "t_end": 1141.4,
+  "angle": "RIGHT",
+  "play_id": "61ce4b0f-db41-4b36-ac56-9618c1161498"
+ },
+ {
+  "name": "97879e8c_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 1161.8,
+  "t_end": 1165.0,
+  "angle": "RIGHT",
+  "play_id": "97879e8c-2922-486e-97b8-2357aebe9b99"
+ },
+ {
+  "name": "5218c964_FGM",
+  "gt": "FG_MISS",
+  "t_start": 1195.2,
+  "t_end": 1198.2,
+  "angle": "RIGHT",
+  "play_id": "5218c964-079d-4ff2-b2f5-98228aa29a58"
+ },
+ {
+  "name": "1f7d1d43_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 1206.0,
+  "t_end": 1209.8,
+  "angle": "RIGHT",
+  "play_id": "1f7d1d43-c587-4ed5-a62e-963cdce8fd76"
+ },
+ {
+  "name": "7e7309ea_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 1265.0,
+  "t_end": 1267.8,
+  "angle": "RIGHT",
+  "play_id": "7e7309ea-a0a7-444f-9fd0-6a2a5f44c3e6"
+ },
+ {
+  "name": "631d0e5e_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 1294.6,
+  "t_end": 1297.8,
+  "angle": "RIGHT",
+  "play_id": "631d0e5e-97b7-476c-a841-66e9f6c1fea6"
+ },
+ {
+  "name": "034529bd_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 1669.0,
+  "t_end": 1673.2,
+  "angle": "RIGHT",
+  "play_id": "034529bd-25fd-45b3-86ac-4d542e3e0399"
+ },
+ {
+  "name": "0e1b76cb_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 1709.0,
+  "t_end": 1712.4,
+  "angle": "RIGHT",
+  "play_id": "0e1b76cb-b8a6-4599-b94e-37ec967645e1"
+ },
+ {
+  "name": "31c61efc_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 1782.8,
+  "t_end": 1785.8,
+  "angle": "RIGHT",
+  "play_id": "31c61efc-effe-4be1-b353-0a8e2ec9d57e"
+ },
+ {
+  "name": "3f50bbdb_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 1797.0,
+  "t_end": 1801.0,
+  "angle": "RIGHT",
+  "play_id": "3f50bbdb-b48d-448e-9bd5-dd04b296f8ce"
+ },
+ {
+  "name": "f3b00279_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 1880.8,
+  "t_end": 1887.0,
+  "angle": "RIGHT",
+  "play_id": "f3b00279-51f1-451c-a5fd-51409ca25aef"
+ },
+ {
+  "name": "d2c5781c_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 1962.2,
+  "t_end": 1968.0,
+  "angle": "RIGHT",
+  "play_id": "d2c5781c-20b1-4c46-a1a5-a6f06d436376"
+ },
+ {
+  "name": "a68dc1ef_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 1976.0,
+  "t_end": 1981.8,
+  "angle": "RIGHT",
+  "play_id": "a68dc1ef-d1e6-4216-92d6-42ed0f0ed433"
+ },
+ {
+  "name": "f3e38ca0_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 1981.4,
+  "t_end": 1986.8,
+  "angle": "RIGHT",
+  "play_id": "f3e38ca0-ce81-4b86-aa3d-df028b55a82d"
+ },
+ {
+  "name": "a339d56f_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2011.0,
+  "t_end": 2017.0,
+  "angle": "RIGHT",
+  "play_id": "a339d56f-e0d0-4557-beaf-99644d669210"
+ },
+ {
+  "name": "18b5f2cf_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2022.4,
+  "t_end": 2025.2,
+  "angle": "RIGHT",
+  "play_id": "18b5f2cf-329f-4c25-b315-bd57b24c6e35"
+ },
+ {
+  "name": "9cf8b4ce_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2050.2,
+  "t_end": 2054.4,
+  "angle": "RIGHT",
+  "play_id": "9cf8b4ce-c72a-4fee-aafd-14ef7686b42a"
+ },
+ {
+  "name": "70915d49_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2075.8,
+  "t_end": 2080.4,
+  "angle": "RIGHT",
+  "play_id": "70915d49-d22f-46ce-a8aa-24b43c5fddd0"
+ },
+ {
+  "name": "e40e49e6_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2184.2,
+  "t_end": 2188.0,
+  "angle": "RIGHT",
+  "play_id": "e40e49e6-cdc9-4df2-8abb-0b0e599f841a"
+ },
+ {
+  "name": "fde63c50_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2195.6,
+  "t_end": 2200.0,
+  "angle": "RIGHT",
+  "play_id": "fde63c50-9cfc-4bcf-a40a-6b417e0052bb"
+ },
+ {
+  "name": "6c1677e5_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2243.8,
+  "t_end": 2248.0,
+  "angle": "RIGHT",
+  "play_id": "6c1677e5-af9f-4345-b170-7e9b4ac2b823"
+ },
+ {
+  "name": "c3fcc035_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2277.0,
+  "t_end": 2279.8,
+  "angle": "RIGHT",
+  "play_id": "c3fcc035-2183-450e-aa19-9807f1ea02ef"
+ },
+ {
+  "name": "5be334fe_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2289.8,
+  "t_end": 2293.4,
+  "angle": "RIGHT",
+  "play_id": "5be334fe-53cc-4afe-9f8c-e182d465e671"
+ },
+ {
+  "name": "4da24385_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2296.8,
+  "t_end": 2299.0,
+  "angle": "RIGHT",
+  "play_id": "4da24385-6d57-47e5-8846-288f1980e482"
+ },
+ {
+  "name": "ff528f3c_4PM",
+  "gt": "4PT_MAKE",
+  "t_start": 2318.6,
+  "t_end": 2322.2,
+  "angle": "RIGHT",
+  "play_id": "ff528f3c-6402-4393-9fed-22c6f3a03529"
+ },
+ {
+  "name": "a53c6e8a_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2336.8,
+  "t_end": 2341.0,
+  "angle": "RIGHT",
+  "play_id": "a53c6e8a-056f-4fb6-ad65-1d90ebc25cc9"
+ },
+ {
+  "name": "f171ab38_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2394.2,
+  "t_end": 2399.8,
+  "angle": "RIGHT",
+  "play_id": "f171ab38-720e-4ce5-baf5-6531336712c2"
+ },
+ {
+  "name": "716f73b9_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 2419.0,
+  "t_end": 2424.2,
+  "angle": "RIGHT",
+  "play_id": "716f73b9-4485-45c2-901d-ce3749188a36"
+ },
+ {
+  "name": "c76656e9_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2450.4,
+  "t_end": 2456.8,
+  "angle": "RIGHT",
+  "play_id": "c76656e9-a7b3-43c8-b4c1-9d3b0daa8d79"
+ },
+ {
+  "name": "2a6a4c75_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2470.8,
+  "t_end": 2474.8,
+  "angle": "RIGHT",
+  "play_id": "2a6a4c75-fcab-4f69-80ad-a2e9db412834"
+ },
+ {
+  "name": "62eb493b_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2483.4,
+  "t_end": 2489.0,
+  "angle": "RIGHT",
+  "play_id": "62eb493b-9a74-47a2-bba7-7f1e148bddc2"
+ },
+ {
+  "name": "a4f0a0d5_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 2588.0,
+  "t_end": 2593.2,
+  "angle": "RIGHT",
+  "play_id": "a4f0a0d5-2534-40da-9272-f453eef3ec4e"
+ },
+ {
+  "name": "3b588d8b_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2592.4,
+  "t_end": 2598.6,
+  "angle": "RIGHT",
+  "play_id": "3b588d8b-cf2f-4f9b-ac60-4b6a7b07fb4f"
+ },
+ {
+  "name": "ae0b700b_3PM",
+  "gt": "3PT_MAKE",
+  "t_start": 2600.0,
+  "t_end": 2608.0,
+  "angle": "RIGHT",
+  "play_id": "ae0b700b-a420-49f9-b820-4c884be8b4f4"
+ },
+ {
+  "name": "ac250269_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2626.2,
+  "t_end": 2633.6,
+  "angle": "RIGHT",
+  "play_id": "ac250269-e891-416d-b9b0-ff39796ba379"
+ },
+ {
+  "name": "b97d4d6e_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2650.4,
+  "t_end": 2658.4,
+  "angle": "RIGHT",
+  "play_id": "b97d4d6e-f56e-4491-b366-092d1a740bc8"
+ },
+ {
+  "name": "30c023f6_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2693.2,
+  "t_end": 2697.6,
+  "angle": "RIGHT",
+  "play_id": "30c023f6-5174-4bab-bb9b-cdaaca9f68ca"
+ },
+ {
+  "name": "8e04a778_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2706.4,
+  "t_end": 2713.8,
+  "angle": "RIGHT",
+  "play_id": "8e04a778-9af3-40bb-9fb7-3ad9702066d8"
+ },
+ {
+  "name": "2198d94e_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 2726.8,
+  "t_end": 2732.6,
+  "angle": "RIGHT",
+  "play_id": "2198d94e-ea8c-4f5b-87da-4d2a99166820"
+ },
+ {
+  "name": "9830fd88_FGM",
+  "gt": "FG_MISS",
+  "t_start": 2754.4,
+  "t_end": 2760.0,
+  "angle": "RIGHT",
+  "play_id": "9830fd88-1b8d-4aa6-8952-3e9ce29a6c40"
+ },
+ {
+  "name": "09b68c43_3PM",
+  "gt": "3PT_MISS",
+  "t_start": 2759.4,
+  "t_end": 2765.0,
+  "angle": "RIGHT",
+  "play_id": "09b68c43-d1d8-415d-9a84-1d66659e15b5"
+ },
+ {
+  "name": "cc4f338d_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2912.4,
+  "t_end": 2918.8,
+  "angle": "RIGHT",
+  "play_id": "cc4f338d-6807-4580-a353-2c6882c21205"
+ },
+ {
+  "name": "6c80e992_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2930.4,
+  "t_end": 2939.8,
+  "angle": "RIGHT",
+  "play_id": "6c80e992-185b-47c8-af14-afce001fc338"
+ },
+ {
+  "name": "481e180f_FGM",
+  "gt": "FG_MAKE",
+  "t_start": 2976.8,
+  "t_end": 2982.6,
+  "angle": "RIGHT",
+  "play_id": "481e180f-6264-4780-9992-5ff54aea97cf"
+ },
+ {
+  "name": "ceca4683_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 2991.6,
+  "t_end": 2999.0,
+  "angle": "RIGHT",
+  "play_id": "ceca4683-b3ec-49dd-9d4c-f7f8a70f8910"
+ },
+ {
+  "name": "8afbf40a_FGM",
+  "gt": "FG_MISS",
+  "t_start": 3040.6,
+  "t_end": 3045.8,
+  "angle": "RIGHT",
+  "play_id": "8afbf40a-e098-4861-960c-edc2a984ff75"
+ },
+ {
+  "name": "bda69f1d_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 3062.8,
+  "t_end": 3069.4,
+  "angle": "RIGHT",
+  "play_id": "bda69f1d-3c68-4548-bd9a-1e2aa7d6667a"
+ },
+ {
+  "name": "da7c2979_4PM",
+  "gt": "4PT_MISS",
+  "t_start": 3086.0,
+  "t_end": 3092.2,
+  "angle": "RIGHT",
+  "play_id": "da7c2979-2477-4b80-ae4c-eb46e7be4b64"
+ },
+ {
+  "name": "962fc55f_FTM",
+  "gt": "FREE_THROW_MISS",
+  "t_start": 3148.0,
+  "t_end": 3155.2,
+  "angle": "RIGHT",
+  "play_id": "962fc55f-5ef0-49a0-a9f6-715eea8d8840"
+ },
+ {
+  "name": "7f5aaca9_FTM",
+  "gt": "FREE_THROW_MISS",
+  "t_start": 3187.0,
+  "t_end": 3193.0,
+  "angle": "RIGHT",
+  "play_id": "7f5aaca9-7984-46c5-ad59-462cad4c462b"
+ },
+ {
+  "name": "f4c211b8_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 3245.4,
+  "t_end": 3251.0,
+  "angle": "RIGHT",
+  "play_id": "f4c211b8-5e09-43e8-9cb2-9206f1a61165"
+ },
+ {
+  "name": "7edb78f9_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 3257.4,
+  "t_end": 3263.4,
+  "angle": "RIGHT",
+  "play_id": "7edb78f9-bc6e-40c7-9651-25b94cdb3faa"
+ },
+ {
+  "name": "e889f97b_FTM",
+  "gt": "FREE_THROW_MISS",
+  "t_start": 3301.2,
+  "t_end": 3308.0,
+  "angle": "RIGHT",
+  "play_id": "e889f97b-5827-4f61-a9d7-8b198f3399db"
+ },
+ {
+  "name": "1abe1fdc_FTM",
+  "gt": "FREE_THROW_MISS",
+  "t_start": 3323.2,
+  "t_end": 3329.2,
+  "angle": "RIGHT",
+  "play_id": "1abe1fdc-88c7-433e-9e77-a86b316c10bb"
+ },
+ {
+  "name": "4aa147cf_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 3359.8,
+  "t_end": 3364.8,
+  "angle": "RIGHT",
+  "play_id": "4aa147cf-2529-47dc-9ed0-ff1e4c06b758"
+ },
+ {
+  "name": "2565b322_FTM",
+  "gt": "FREE_THROW_MAKE",
+  "t_start": 3373.2,
+  "t_end": 3379.0,
+  "angle": "RIGHT",
+  "play_id": "2565b322-7995-4d90-9775-63f97380fdb3"
+ },
+ {
+  "name": "1dc9b0f0_FTM",
+  "gt": "FREE_THROW_MISS",
+  "t_start": 3407.4,
+  "t_end": 3414.0,
+  "angle": "RIGHT",
+  "play_id": "1dc9b0f0-d3af-4d96-8db8-18fc2dc69c72"
+ },
+ {
+  "name": "b827b3e1_FTM",
+  "gt": "FREE_THROW_MISS",
+  "t_start": 3423.6,
+  "t_end": 3429.2,
+  "angle": "RIGHT",
+  "play_id": "b827b3e1-b008-4010-8c62-2f0a7cf3b777"
+ }
+]

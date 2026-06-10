@@ -66,15 +66,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--game-id", required=True)
     ap.add_argument("--sync-frames", type=int, required=True)
+    ap.add_argument("--dir-prefix", default="val_")
     args = ap.parse_args()
     gid = args.game_id
-    G = ROOT / f"data/client_report/triangulation_test/val_{gid}"
+    G = ROOT / f"data/client_report/triangulation_test/{args.dir_prefix}{gid}"
     py = sys.executable
 
     # 1. refill clips (two passes; good clips skip via ffprobe check)
     for _ in range(2):
         subprocess.run([py, "-u", "pipeline/extract_val_clips.py",
-                        "--game-id", gid,
+                        "--game-id", gid, "--dir-prefix", args.dir_prefix,
                         "--sync-frames", str(args.sync_frames)], cwd=ROOT)
 
     # 2. shots needing re-run: results missing OR bare UNDECIDED with 0 samples
@@ -92,7 +93,7 @@ def main() -> int:
 
     env = {**os.environ, **FLAGS, "CALIB_JUNE_SAM3": "1",
            "CALIB_JUNE_JSON": str(ROOT / "data/client_report/triangulation_test"
-                                  f"/calibration_val_{gid}_sam3.json")}
+                                  f"/calibration_{args.dir_prefix}{gid}_sam3.json")}
     if redo:
         subprocess.run([py, "-u", "pipeline/triangulate_shot.py",
                         "--shots-json", str(G / "clips/shots_pipeline.json"),
@@ -123,7 +124,7 @@ def main() -> int:
     fp, fn, und = roll.get("FP", 0), roll.get("FN", 0), roll.get("UND", 0)
     dec = tp + tn + fp + fn
     n = dec + und
-    print(f"=== val_{gid} REPAIRED: TP={tp} TN={tn} FP={fp} FN={fn} "
+    print(f"=== {args.dir_prefix}{gid} REPAIRED: TP={tp} TN={tn} FP={fp} FN={fn} "
           f"UND={und}  dec={100*(tp+tn)/dec:.1f}%  ovr={100*(tp+tn)/n:.1f}%")
     return 0
 

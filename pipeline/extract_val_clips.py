@@ -29,6 +29,9 @@ S3_GAMES = {
     "b3c1f62c": ("2026-05-16", "b3c1f62c-1a02-47c9-8d2a"),
     "cc5deb39": ("2026-05-19", "cc5deb39-71de-4ea9-b3a2"),
     "f3e7b25a": ("2026-05-16", "f3e7b25a-430a-4b37-aa80"),
+    "ee8745f1": ("2026-04-16", "ee8745f1-863f-47cf-a43d"),
+    "6d601c99": ("2026-04-18", "6d601c99-9173-445f-a647"),
+    "c2a354fe": ("2026-03-19", "c2a354fe-eb34-4980-af00"),
 }
 FPS = 29.97
 PAD_BEFORE = 1.0
@@ -72,9 +75,10 @@ def extract(url: str, t_start: float, dur: float, out_path: Path) -> bool:
         return False
 
 
-def run_game(gid8: str, sync_frames: int, nr_only: bool, workers: int) -> int:
+def run_game(gid8: str, sync_frames: int, nr_only: bool, workers: int,
+             prefix: str = "val_") -> int:
     date, gid = S3_GAMES[gid8]
-    G = ROOT / f"data/client_report/triangulation_test/val_{gid8}"
+    G = ROOT / f"data/client_report/triangulation_test/{prefix}{gid8}"
     clips = G / "clips"
     clips.mkdir(exist_ok=True)
     shots = json.loads((G / "shots_right.json").read_text())
@@ -120,12 +124,13 @@ def main() -> int:
     ap.add_argument("--nr-only", action="store_true",
                     help="re-extract only NR clips (after measured sync)")
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--dir-prefix", default="val_")
     args = ap.parse_args()
     targets = list(S3_GAMES) if args.all else [args.game_id]
     total_fails = 0
     for gid8 in targets:
         total_fails += run_game(gid8, args.sync_frames, args.nr_only,
-                                args.workers)
+                                args.workers, args.dir_prefix)
     return 1 if total_fails else 0
 
 

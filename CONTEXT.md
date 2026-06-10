@@ -663,6 +663,37 @@ the untouched test pool (~24 games). Artifacts: `arbiter_dataset.json`
 games; (2) tri-confidence features for the ≥0.99 zone; (3) left-basket
 (FL/NL) bring-up doubles all of this.
 
+### Session 2026-06-11 (later) — FROZEN-GATE TEST VERDICT: gate holds (+1.3pt)
+
+Test set: the 3 fusion-TEST games that also have 4 angles (6d601c99,
+ee8745f1, c2a354fe — March/April; cameras verified unmoved since March,
+drift 0-18px). Frozen pipeline + frozen gates, zero retuning. 236-shot
+fusion∩tri overlap (`test_` dirs; fusion preds from
+`01_per_shot_predictions_all_test_shots.csv`).
+
+- Audio sync caught big errors again: 6d601c99 **+2**, ee8745f1 +10,
+  c2a354fe +7 (vs +13 default). Sync step is mandatory and works.
+- Tri standalone (frozen): 91.9/87.7, 79.7/77.6, 84.3/78.9 →
+  **84.9% dec / 80.9% ovr aggregate** — matches dev (83.8/79.7).
+  9-game out-of-sample total now ~762 shots at ~84/80.
+- **Hybrid frozen-gate test result:**
+  | | dev (449) | test (236) |
+  |---|---|---|
+  | fusion alone | 94.21% | 89.83% |
+  | hybrid gate A (prob<0.99) | 95.55% (+1.34) | **91.10% (+1.27)** |
+  | hybrid gate B (∧apex≤150) | 95.32% | 90.68% (c2a354fe −1.1 ❌) |
+  | oracle | 97.10% | 94.49% |
+- **Gate A is the production gate**: delta stable ~+1.3pt in AND out of
+  sample; per-game never negative on all 8 games (test: +3.1/+1.3/0.0).
+  Gate B regressed on c2a354fe → dropped.
+- Veto precision drops out-of-sample (75%→59%) — tri false-MISSes are
+  the cost driver; the tri-confidence score (roadmap #1) and audio
+  rim-clang cue (#2) are the levers to close the +3.4pt oracle gap.
+
+(Fusion's 89.8% here is its held-out-TEST-era baseline on right-basket
+shots — not comparable to the 95.1% fresh-validation headline; the
+meaningful number is the stable +1.3pt hybrid delta.)
+
 ### Caveats / next steps
 
 1. **OVERFIT WARNING (critical):** three rounds of threshold fitting on the
