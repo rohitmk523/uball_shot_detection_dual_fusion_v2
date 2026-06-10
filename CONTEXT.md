@@ -324,6 +324,70 @@ This is how we got the empty-court frames without downloading 4 GB.
 aws s3 cp s3://uball-videos-production/court-a/<date>/<game-prefix>/<file>.mp4 ./local.mp4
 ```
 
+### 6.2b Four-angle game inventory (compiled 2026-06-10)
+
+**S3 game uuid == annotation-tool `games.id`** (verified — the S3 dir name is
+the first 23 chars of the full uuid). Annotation tool = uball.ai project
+`mhbrsftxvxxtfgbajrlc` (NOT Uball-core `kjgnswlxsqhayabdpheh`, which is the
+consumer app).
+
+62 court-a games have all 4 angles (FR/NR/FL/NL); 53 are real recordings
+(>500MB/angle); **29 of those have annotation shots**. Tier-1 = May cluster
+(14 games, closest era to the June calibration; CONTEXT §3: cameras barely
+moved 05-28 → 06-03):
+
+| date | S3/game id prefix | shots |
+|---|---|---|
+| 2026-05-22 | fb677f72 / 0ad23700 / 0af6ae02 | 170 / 162 / 148 |
+| 2026-05-21 | b7956f81 | 166 |
+| 2026-05-19 | 77715f25 / cc1710c4 / cc5deb39 | 207 / 177 / 173 |
+| 2026-05-18 | 329042f1 | 149 |
+| 2026-05-16 | b3c1f62c / f3e7b25a | 148 / 151 |
+| 2026-05-15 | d446fe8c / f66eb3b2 / 49b3873e / 0fa23810 | 169 / 160 / 147 / 146 |
+
+Tier-2 (April, camera era unverified): 04-16 ×4 (164/153/137/160),
+04-17 ×3 (147/160/142), 04-18 ×3 (158/136/113), 04-28 ×3 (201/171/167),
+04-29 ×2 (179/162). Tier-3 (March): c2a354fe (189), e6fba750 (142).
+Jan/Feb 4-angle games are mostly unannotated.
+
+≈2,240 tier-1 shots + ≈2,000 tier-2 — out-of-sample validation data AND
+left-basket (FL/NL) doubling. Left-side calibration trick (from Rohit):
+pick a play happening on the RIGHT basket → left basket is empty → grab
+FL/NL frames for calibration; mirror for right.
+
+### 6.2c Camera sync — MEASURED offsets (Rohit, frame-marked FT clips, 2026-06-10)
+
+**Sync varies per game** — the June uniform +13 assumption was wrong:
+
+| game | NR = FR + | NL = FL + |
+|---|---|---|
+| val 77715f25 | **+17** | −1 |
+| val cc1710c4 | **+11** | 0 |
+| val fb677f72 | **+14** (typo-corrected from "22408", pending confirm) | 0 |
+| june ×4 | sync clips built (`validation_sync/JUNE_*_FRNR.mp4`), awaiting marks | |
+
+June marks (2026-06-10): 4692eb2b **+7**, e74164e6 **+6** (both re-extracted
++ re-run), 72c08cb7 unmarked (clip playback issues — keep +13),
+454da9cf unmarked (keep +13).
+
+Protocol: side-by-side FR|NR clip of a made FT with absolute frame numbers
+burned in (`extract_val_clips.py` / `validation_sync/` clips); Rohit marks
+the same event in both panels. A ±4-frame sync error (0.13s) at descent
+speeds ≈ 40-65cm along-trajectory error — confirmed cause of June depth bias.
+
+**Audio cross-correlation sync (`pipeline/audio_sync_detect.py`) —
+INCONCLUSIVE so far:** best-confidence windows match manual marks to ~0.1-1
+frame (4692eb2b t=2120 peak 27×: +7.01 vs manual +7), but windows scatter
+±5 frames across a game. Two hypotheses: (a) gym music creates false
+correlation peaks (beat periodicity), (b) REAL within-game clock drift
+between cameras (offset trends upward over game time in 2 of 4 games —
+~5 frames / 50 min ≈ 60 ppm, plausible for consumer clocks). Drift-test
+clip built: `validation_sync/JUNE_4692eb2b_DRIFTTEST_lateFT_FRNR.mp4`
+(late FT @2572.8 in the game Rohit marked +7 @804). If the late mark ≈ +11,
+drift is real and sync must be TIME-VARYING (linear model per game,
+two marks or robust audio fit); if ≈ +7, music artifacts explain scatter
+and best-peak audio sync is usable.
+
 ### 6.3 SAM3 model location
 
 Local: `/Users/rohitkale/Cellstrat/GitHub_Repositories/DEMO_UBALL/demo/sam3.pt` (3.2 GB)
@@ -525,6 +589,42 @@ FT 91.1, FG 83.2, 3PT 91.9, 4PT 87.5.
 Day's arc: 67.9/54.3 → 74.3/68.2 (bounds+skip) → 81.3/74.6 (Y-guard) →
 **87.5/80.4** (crossing override). All via verdict logic; zero calibration
 changes. Legacy no-flag path re-verified bit-identical after every change.
+
+### Session 2026-06-10 (validation) — OUT-OF-SAMPLE VERDICT: 84.2% dec / 80.6% ovr
+
+Ran the full pipeline on 3 never-seen May games (284 right-basket shots,
+measured sync +17/+11/+14, fresh per-game SAM3 calibration, production
+flag set). Per game (dec/ovr): 77715f25 81.4/75.5 · cc1710c4 87.4/85.6 ·
+fb677f72 84.0/81.8. **Aggregate: TP=101 TN=128 FP=17 FN=26 UND=12 →
+84.2% decided / 80.6% overall.** June in-sample was 87.5/80.4 → the
+guards generalize (≈3pt decided shrinkage, overall holds).
+
+**Sync findings (Rohit's frame marks + audio):**
+- Offsets vary per game: val +17/+11/+14; June 4692eb2b +7, e74164e6 +6
+  (June's assumed +13 was 6-7 frames wrong → re-extracted + re-run; the
+  −140cm crossing bias was sync-driven).
+- Within-game clock drift is REAL but small: +7@t=804 → +8@t=2573 in
+  4692eb2b (~1 frame/game ≈ 20ppm). Single per-game offset is adequate.
+- `pipeline/audio_sync_detect.py`: high-confidence windows cluster at the
+  true offset (±1 frame); music creates outlier windows → use a
+  density-cluster estimator over many windows, validated against the 5
+  manual marks. Sync is now automatable for all held-out games.
+
+**HYBRID with angle-aware fusion (CLIENT_REPORT system, 95.1%) — the
+strategic direction:** fusion's only failure is depth-illusion FPs;
+triangulation's unique strength is depth. On the 207-shot overlap:
+fusion alone 93.7%; triangulation flags 10 of fusion's 12 FPs as MISS
+(P(miss|fusion-MAKE ∧ tri-MISS) = 40% vs 10% prior = 4× lift). A naive
+unconditional veto fails (−12 TP/+8 FP — tri's own false-MISSes fire on
+the same verdict types); the improvement-phase task is a GATED arbiter
+(features: fusion prob, tri verdict type + quality metrics — y_off,
+cross_y, apex_r, n_samples). Target: 93.7% → ~96-97% on right-basket.
+Also: CLIENT_REPORT §5a's "post-hoc sync impossible (σ30-77 frames)"
+is OBSOLETE — FT-mark/audio sync gives ±1 frame post-hoc.
+
+**Improvement-phase setup (agreed with Rohit):** dev set = 5
+measured-sync games (3 val + 2 re-synced June, ~539 tri shots + fusion
+preds); test pool = remaining ~24 annotated 4-angle games, untouched.
 
 ### Caveats / next steps
 
