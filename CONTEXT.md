@@ -854,3 +854,35 @@ python3 pipeline/calibrate_june_sam3.py --game-id 4692eb2b
 
 **END OF CONTEXT.** Read once, then start building the automated court-line calibrator
 using section 7 as the spec.
+
+### Session 2026-06-11/12 — 20-GAME TRAINING EXPANSION + STACKER VERDICT
+
+**AWS Batch expansion (GPU spot, ~$0.30/game):** bundled the pipeline
+(weights+calibrations+scripts → s3://uball-videos-production/_tmp_tri/),
+ran all 15 fusion-training games on the client's `cv-shot-detection-queue`
+(g4dn spot, job-def ffmpeg-nvenc-transcode, in-region extraction ≈instant,
+~10 min/game). Spot reclaims handled via resubmit + attempts=3; 3
+stragglers finished on M4. ALL 15 games processed; per-game tri results
+80-93% dec (band holds at scale; anomaly: train_2c490f1a UND=37 — needs
+re-sync investigation).
+
+**OOF fusion preds** (`pipeline/p3_logo_oof.py` → 
+`data/p3_logo_oof_predictions.parquet`): 18-fold LOGO retrain, 95.98%
+overall — the unbiased fusion baseline on its own training games.
+
+**STACKER VERDICT (1,618 rows / 20 games / LOGO, identical folds):**
+| policy | acc | per-game safety |
+|---|---|---|
+| fusion alone | 94.62% | — |
+| **rules gate A (frozen)** | **95.18%** | safe |
+| stacker HGB d3 | 95.06% | worse than fusion on 9/20 ❌ |
+| stacker logistic | 94.68% | worse on 4/20 |
+
+**CONCLUSION: the learned stacker does NOT beat the frozen rules even at
+7× the data — and it is per-game unstable. The production policy stays
+`hybrid_router.py` (fusion + v2 hi-res escalation + gate A).** Note this
+table's train-game tri verdicts are L1+hires-on-UND basis (not v2
+escalation), so the rules' +0.56pt here understates the deployed +1.3pt.
+The "train weights → 99%" hypothesis is falsified on current features;
+paths past ~96-97% remain: capture-side upgrades (Linear/shutter/fps),
+GT label cleanup, and new evidence (audio) for fusion-≥0.99-wrong shots.
