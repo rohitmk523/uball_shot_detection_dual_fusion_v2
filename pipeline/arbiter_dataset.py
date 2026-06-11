@@ -32,7 +32,9 @@ os.environ.update({"DESCENT_BOUNDS": "1", "DESCENT_SKIP_NOISY": "1",
 
 import numpy as np  # noqa: E402
 from rescore_descent import rescore_one  # noqa: E402
-from triangulate_shot import RIM_X, RIM_Y  # noqa: E402
+from triangulate_shot import (  # noqa: E402
+    RIM_X, RIM_Y, RIM_Z, nr_rebound_check, sample_in_court,
+)
 
 MAKE = {"FREE_THROW_MAKE", "FG_MAKE", "3PT_MAKE", "4PT_MAKE"}
 
@@ -60,26 +62,51 @@ def tri_rule(v: str) -> str:
 def shot_features(G: Path, name: str) -> dict:
     feats = dict(n_l1=0, n_hr=0, n_used=0, y_off_stop=-1.0, cross_r=-1.0,
                  cross_y=-1.0, z_min=-1.0, bounce_cm=-1.0, apex_r=-1.0,
-                 apex_z=-1.0, n_post=-1, tri_verdict="UNDECIDED")
+                 apex_z=-1.0, n_post=-1, tri_verdict="UNDECIDED",
+                 # ---- tri-confidence features ----
+                 src_agree_miss=False,    # l1 AND hr both decide MISS
+                 src_conflict=False,      # l1/hr decide opposite verdicts
+                 desc_n=0,                # in-court samples in descent window
+                 desc_max_gap=-1.0,       # max time gap in descent window (s)
+                 cross_dt=-1.0,           # bracket dt of rim-plane crossing
+                 nr_rebound=False,        # NR pixel rebound corroboration
+                 hr_available=False)
     srcs = {}
-    for tag, d in (("l1", "results_sam3"), ("hr", "results_hires_sam3")):
-        p = G / d / f"{name}.json"
-        if p.exists():
-            srcs[tag] = json.loads(p.read_text()).get("samples", [])
+    for tag, dirs in (("l1", ("results_sam3",)),
+                      ("hr", ("results_hires_arbiter", "results_hires_sam3"))):
+        for d in dirs:
+            p = G / d / f"{name}.json"
+            if p.exists():
+                srcs[tag] = json.loads(p.read_text()).get("samples", [])
+                break
     feats["n_l1"] = len(srcs.get("l1", []))
     feats["n_hr"] = len(srcs.get("hr", []))
-    # merge precedence identical to the pipeline: hr if decided, else l1
+    feats["hr_available"] = feats["n_hr"] >= 3
+    # verdicts of BOTH sources (cross-source agreement is a confidence cue)
+    verdicts = {}
     chosen = None
     for tag in ("hr", "l1"):
         s = srcs.get(tag, [])
         if len(s) < 3:
             continue
         info, v = rescore_one(s)
-        if not v.startswith("UNDECIDED"):
+        verdicts[tag] = v
+        if chosen is None and not v.startswith("UNDECIDED"):
             chosen = (s, info, v)
-            break
-        if chosen is None:
-            chosen = (s, info, v)
+    if chosen is None:
+        for tag in ("hr", "l1"):
+            s = srcs.get(tag, [])
+            if len(s) >= 3:
+                info, v = rescore_one(s)
+                chosen = (s, info, v)
+                break
+    v_l1, v_hr = verdicts.get("l1", ""), verdicts.get("hr", "")
+    if v_l1 and v_hr:
+        l1_miss, hr_miss = v_l1.startswith("MISS"), v_hr.startswith("MISS")
+        l1_make, hr_make = v_l1.startswith("MAKE"), v_hr.startswith("MAKE")
+        feats["src_agree_miss"] = bool(l1_miss and hr_miss)
+        feats["src_conflict"] = bool((l1_miss and hr_make)
+                                     or (l1_make and hr_miss))
     if chosen is None:
         return feats
     samples, info, v = chosen
@@ -93,11 +120,31 @@ def shot_features(G: Path, name: str) -> dict:
     feats["z_min"] = float(info.get("z_min", -1.0))
     feats["bounce_cm"] = float(info.get("bounce_cm", -1.0))
     feats["n_post"] = int(info.get("n_post", -1))
-    zs = [s["X_cm"][2] for s in samples]
+    court = [s for s in samples if sample_in_court(s)]
+    zs = [s["X_cm"][2] for s in court] or [0]
     ai = int(np.argmax(zs))
-    ax, ay, az = samples[ai]["X_cm"]
+    ax, ay, az = court[ai]["X_cm"] if court else (0, 0, 0)
     feats["apex_r"] = float(np.hypot(ax - RIM_X, ay - RIM_Y))
     feats["apex_z"] = float(az)
+    if court:
+        apex_t = court[ai]["t"]
+        desc = [s for s in court if apex_t <= s["t"] <= apex_t + 1.2]
+        feats["desc_n"] = len(desc)
+        if len(desc) >= 2:
+            ts = [s["t"] for s in desc]
+            feats["desc_max_gap"] = float(max(b - a for a, b
+                                              in zip(ts, ts[1:])))
+        # crossing bracket dt: gap between the two samples the rim-plane
+        # crossing was interpolated across (large = unreliable crossing)
+        for i in range(ai, len(court) - 1):
+            if court[i]["X_cm"][2] >= RIM_Z > court[i + 1]["X_cm"][2]:
+                feats["cross_dt"] = float(court[i + 1]["t"] - court[i]["t"])
+                break
+        try:
+            reb, *_ = nr_rebound_check(court, ai)
+            feats["nr_rebound"] = bool(reb)
+        except Exception:
+            pass
     return feats
 
 

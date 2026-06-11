@@ -694,6 +694,33 @@ fusion∩tri overlap (`test_` dirs; fusion preds from
 shots — not comparable to the 95.1% fresh-validation headline; the
 meaningful number is the stable +1.3pt hybrid delta.)
 
+### Session 2026-06-11 (cont.) — HYBRID v2: hi-res escalation (+3.0pt on test)
+
+Root cause analysis of the oracle gap: hi-res triangulation only ran on
+UND shots, so gate-zone shots were judged on sparse 640px L1 tracks
+(hr_available ~10% in the zone) — tri's false-MISSes were a track-density
+artifact. **v2 PIPELINE POLICY: when fusion=MAKE and L1-tri says
+confident-MISS, escalate that shot to hi-res (1280px) triangulation;
+the hi-res verdict replaces L1's. Gate A (fus_prob<0.99) stays FROZEN
+on top.** Hi-res results live in `results_hires_arbiter/` (separate dir;
+standalone tri numbers untouched).
+
+| | dev (449) | test (236, frozen) |
+|---|---|---|
+| fusion alone | 94.21% | 89.83% |
+| hybrid v1 (L1 tracks) | 95.55% | 91.10% |
+| **hybrid v2 (hi-res escalation)** | 95.55% | **92.80%** |
+| oracle (v2 zones) | ~96.9% | 94.07% |
+
+- Hi-res self-corrects most tri false-MISSes BEFORE any veto: dev gate
+  zone 48→27 candidates, test 26→15; veto precision 59%→**82%** on test.
+- Per-game test: 92.3→95.4, 85.5→89.5, 91.6→93.7 — positive everywhere.
+- Hybrid v2 captures ~70% of the oracle gap (v1: 27%).
+- Cost: hi-res triangulation on ~6-11% of shots (the disagreements) —
+  small, bounded compute.
+- Residual ~1.3pt to oracle = fusion-≥0.99-confident-and-wrong +
+  remaining tri false-MISSes → audio rim-clang cue is the next lever.
+
 ### Caveats / next steps
 
 1. **OVERFIT WARNING (critical):** three rounds of threshold fitting on the
