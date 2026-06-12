@@ -5,6 +5,21 @@
 454da9cf, 72c08cb7) + 8 old era (SuperView, auto shutter; 77715f25 May,
 29b51d57 April). Frozen test pool untouched.
 
+> **CORRECTION (2026-06-13, Phase 1):** The "teal ball" theory for the
+> 454da9cf no-event cluster is WRONG. Root cause: **the 454da9cf NR recording
+> is frozen for ~14.5 min (t≈870–1750), in the S3 source itself** — those 18
+> plays have no near-angle footage at all (verified: S3 frames at t1000/t1004
+> identical; band re-confirmed in the Phase 1 builder via zero rim-crop motion
+> energy). The five Phase 0 "no-event" clips (c07 c10 c11 c21 c31) and the
+> five near-zero YOLO-ball clips are exactly the frozen-band clips; the rest
+> of 454da9cf has normal orange-ball detections. Consequences: (a) effective
+> blind-read accuracy on clips WITH footage = 20/27 (74%), and 4 of the 7
+> remaining errors are suspected label noise; (b) ball-color risk downgraded
+> (orange-on-red camouflage c17/c27 still real); (c) every dataset build must
+> run a frozen-band scan (cluster of ~0 rim-crop energies) per game/angle —
+> 19 rimcrop clips flagged `unusable`, 315 duplicate detector frames purged;
+> (d) 4692eb2b/72c08cb7 verified clean.
+
 ## 0. Headline findings
 
 1. **The "near" camera is an overhead rim camera.** Mounted high behind the
