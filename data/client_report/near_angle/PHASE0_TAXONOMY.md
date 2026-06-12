@@ -18,7 +18,12 @@
 > (orange-on-red camouflage c17/c27 still real); (c) every dataset build must
 > run a frozen-band scan (cluster of ~0 rim-crop energies) per game/angle —
 > 19 rimcrop clips flagged `unusable`, 315 duplicate detector frames purged;
-> (d) 4692eb2b/72c08cb7 verified clean.
+> (d) 4692eb2b/72c08cb7 verified clean. (e) **2c490f1a NR stops at t=1559s**
+> (~26 min; game runs ~46+) — RIGHT-angle plays after t1559 have no near
+> footage; this also explains the old triangulation-track "UND=37" anomaly.
+> Camera-health takeaway: two of 18 dev games have major NR recording faults —
+> the production system (and the 120fps rig) needs a recording-health monitor
+> (rim-crop motion energy over time catches both fault types).
 
 ## 0. Headline findings
 
