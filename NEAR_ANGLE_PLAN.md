@@ -241,8 +241,15 @@ calibration, audio (deferred by Rohit), VLMs.
 ## 8. Evaluation protocol (non-negotiable, inherited from this project's hard lessons)
 
 1. **Freeze a test pool BEFORE any modeling**: pick 4-6 games (mix of eras/
-   modes, both baskets), never tune on them. Suggest: 6d601c99, ee8745f1,
-   c2a354fe (already frozen test games before) + 2 May games + 1 June game.
+   modes, both baskets), never tune on them.
+   **FROZEN 2026-06-12 (before any near-angle modeling or data inspection):**
+   - `c2a354fe` (March, SuperView/Auto-shutter era)
+   - `6d601c99`, `ee8745f1` (April, SuperView era)
+   - `0fa23810`, `49b3873e` (May 2026-05-15..22 cluster)
+   - `e74164e6` (June, Wide + 1/120 shutter era; local NR video exists)
+   These 6 games are OFF-LIMITS for Phase 0 clip-watching, dataset building,
+   training, and threshold tuning. Both baskets (NL+NR) of these games are
+   frozen. One-shot evaluation per milestone only.
 2. Dev work uses **LOGO (leave-one-game-out)** — per-game accuracy ALWAYS
    reported; a method that wins on average but loses on some game is suspect.
 3. Frozen-test evaluations are **one-shot per milestone** — no peeking/iterating.
