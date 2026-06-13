@@ -88,10 +88,13 @@ def run_fold(frames, meta, games, test_game, dev, epochs=EPOCHS, log=print):
     y = np.array([1 if m["make"] else 0 for m in meta])
     in_ch = N_FRAMES + (N_FRAMES - 1 if USE_DIFF else 0)
 
+    # num_workers=0: getitem just slices an mmap + cheap diff; avoids the
+    # 64MB /dev/shm limit in Docker (shared-mem tensor passing OOMs there).
+    nw = int(__import__("os").environ.get("NW", "0"))
     dl_tr = DataLoader(ClipDS(frames[tr], y[tr], True), BATCH, shuffle=True,
-                       num_workers=2, drop_last=True)
+                       num_workers=nw, drop_last=True)
     dl_te = DataLoader(ClipDS(frames[te], y[te], False), BATCH, shuffle=False,
-                       num_workers=2)
+                       num_workers=nw)
     model = build_model(in_ch).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
