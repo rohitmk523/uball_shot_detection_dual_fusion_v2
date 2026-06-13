@@ -39,11 +39,16 @@ def main():
     dev = ("cuda" if torch.cuda.is_available()
            else "mps" if torch.backends.mps.is_available() else "cpu")
     base = args.base if Path(args.base).exists() else "yolo11n.pt"
-    print(f"device={dev} base={base} data={args.data}")
+    # Docker containers default to 64MB /dev/shm; YOLO's multi-worker
+    # DataLoader OOMs there. workers=0 avoids shared-memory tensor passing
+    # (set NW>0 only when running outside a shm-constrained container).
+    import os
+    nw = int(os.environ.get("NW", "0"))
+    print(f"device={dev} base={base} data={args.data} workers={nw}")
 
     model = YOLO(base)
     common = dict(data=args.data, device=dev, project=args.project,
-                  exist_ok=True, seed=42, workers=4)
+                  exist_ok=True, seed=42, workers=nw)
     if args.smoke:
         model.train(name="near-det-smoke", epochs=2, imgsz=640, batch=4,
                     augment=False, **common)

@@ -13,7 +13,7 @@ pip3 install -q awscli ultralytics 2>&1 | tail -1 || true
 
 mkdir -p /work && cd /work
 aws s3 cp "$P/dataset.tar.gz" . >/dev/null
-tar xzf dataset.tar.gz                       # -> /work/data/yolo_split + base.pt
+tar xzf dataset.tar.gz 2>/dev/null            # -> /work/yolo_split/{train,val,test,base.pt}
 aws s3 cp "$P/train_detector.py" train_detector.py >/dev/null
 
 # resume from checkpoint if a prior attempt uploaded one
@@ -24,7 +24,7 @@ if aws s3 cp "$P/ckpt/last.pt" "$RUN/weights/last.pt" >/dev/null 2>&1; then
 fi
 
 # fix dataset.yaml path to the in-container location
-sed -i "s#^path:.*#path: /work/data/yolo_split#" /work/data/yolo_split/dataset.yaml
+sed -i "s#^path:.*#path: /work/yolo_split#" /work/yolo_split/dataset.yaml
 
 # background uploader: push checkpoints to S3 every 3 min during training
 ( while true; do
@@ -34,8 +34,8 @@ sed -i "s#^path:.*#path: /work/data/yolo_split#" /work/data/yolo_split/dataset.y
   done ) &
 UP=$!
 
-python3 train_detector.py --data /work/data/yolo_split/dataset.yaml \
-  --base /work/data/base.pt --project /work/runs \
+python3 train_detector.py --data /work/yolo_split/dataset.yaml \
+  --base /work/yolo_split/base.pt --project /work/runs \
   --epochs 100 --imgsz 1280 --batch 16 ${RESUME} 2>&1 | tee /work/train_log.txt
 
 kill $UP 2>/dev/null || true
