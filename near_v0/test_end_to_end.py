@@ -34,7 +34,10 @@ DET_W = REPO / "near_v0/weights/near_det_v1_best.pt"
 CLS_W = REPO / "near_v0/weights/classifier_all17.pt"
 BALL, HOOP = 0, 1
 CONF, IMGSZ = 0.30, 960
-ZONE_ABOVE, MIN_EVENT_FRAMES = 1.2, 2
+# v0.2 spotter defaults (swept on held-out 72c08cb7+9eb51980): wide zone for
+# recall + rim-reach filter for precision; event TIME stays rim-crossing.
+ZONE_ABOVE, MIN_EVENT_FRAMES = 2.5, 2
+REACH_FRAC = 0.8                     # event valid only if ball reached < 0.8*rim_w of center
 EVENT_GAP_S = 2.0                    # merge rim-bounce re-triggers into one event
 CROP_SCALE, OUT_SIZE, N_FRAMES = 1.6, 320, 16
 WIN_BEFORE, WIN_AFTER = 0.7, 1.4
@@ -154,10 +157,12 @@ def main():
     ev = [{"t": float(min(e, key=lambda x: x[2])[0]),
            "f0": e[0][1], "f1": e[-1][1],
            "min_dist": float(min(x[2] for x in e))} for e in events]
-    # NOTE: a rim-reach filter (min_dist < k*rim_w) and denser stride were
-    # tried but regressed on e74164e6 (0.840 -> 0.731); reverted. Spotter
-    # recall/precision tuning belongs on a SEPARATE held-out game to avoid
-    # overfitting this frozen test set.
+    # v0.2 rim-reach filter: keep events where the ball actually reached the
+    # rim (min approach < REACH_FRAC*rim_w). Swept on held-out games:
+    # REACH_FRAC=0.8 lifts recall AND precision over v0.1 (the earlier 0.55
+    # threshold was too aggressive and regressed).
+    rimw = float(rim_acc[2] - rim_acc[0]) if rim_acc is not None else 467.0
+    ev = [e for e in ev if e["min_dist"] < REACH_FRAC * rimw]
 
     # pass 2: TRAINING-STYLE crop centered on each spotted event time (segment
     # [t-3,t+3], motion anchor, training window) -- matches build_rimcrop so the
