@@ -32,7 +32,10 @@ def main():
     angles = [0, 30, 60, 90, 120, 150]
     n = 0
     for i, lp in enumerate(sorted(lbls.glob("*.txt"))):
-        cls = [ln.split()[0] for ln in lp.read_text().splitlines() if ln.split()]
+        if lp.name.startswith(".") or "_mblur" in lp.name:   # skip ._ forks, re-runs
+            continue
+        txt = lp.read_text(errors="ignore")
+        cls = [ln.split()[0] for ln in txt.splitlines() if ln.split()]
         if "0" not in cls:             # only blur ball-containing frames
             continue
         ip = imgs / f"{lp.stem}.jpg"
@@ -44,7 +47,7 @@ def main():
         ker = motion_kernel(lengths[i % len(lengths)], angles[(i // 5) % len(angles)])
         blurred = cv2.filter2D(img, -1, ker)
         cv2.imwrite(str(imgs / f"{lp.stem}_mblur.jpg"), blurred)
-        (lbls / f"{lp.stem}_mblur.txt").write_text(lp.read_text())
+        (lbls / f"{lp.stem}_mblur.txt").write_text(txt)
         n += 1
     print(f"blur-augmented {n} ball frames")
 
