@@ -82,18 +82,23 @@ def main():
     ap.add_argument("--t0", type=float, default=0)
     ap.add_argument("--t1", type=float, default=1e9)
     ap.add_argument("--stride", type=int, default=3)
+    ap.add_argument("--manifest", default=None,
+                    help="shots_right.json path (default: june_<game>/)")
+    ap.add_argument("--det", default=str(DET_W))
+    ap.add_argument("--clf", default=str(CLS_W))
     args = ap.parse_args()
     dev = "mps" if torch.backends.mps.is_available() else (
         "cuda" if torch.cuda.is_available() else "cpu")
 
-    man = json.loads((REPO / f"data/client_report/triangulation_test/"
-                      f"june_{args.game}/shots_right.json").read_text())
+    mpath = args.manifest or str(REPO / f"data/client_report/triangulation_test/"
+                                 f"june_{args.game}/shots_right.json")
+    man = json.loads(Path(mpath).read_text())
     gt = [{"t0": float(s["t_start"]), "t1": float(s["t_end"]), "gt": s["gt"],
            "make": s["gt"].endswith("MAKE"), "pid": s["play_id"][:8]}
           for s in man if args.t0 <= float(s["t_start"]) <= args.t1]
 
-    det = YOLO(str(DET_W))
-    ck = torch.load(CLS_W, map_location=dev)
+    det = YOLO(args.det)
+    ck = torch.load(args.clf, map_location=dev)
     clf = build_model(ck["in_ch"]).to(dev)
     clf.load_state_dict(ck["state_dict"])
     clf.eval()
@@ -223,9 +228,14 @@ def main():
         print(f"  make recall: {sum(e['pred_make'] for e in mk)/len(mk):.3f} ({len(mk)} makes)")
     if ms:
         print(f"  miss recall: {sum(not e['pred_make'] for e in ms)/len(ms):.3f} ({len(ms)} misses)")
-    (REPO / f"data/near_detector/e2e_{args.game}.json").write_text(json.dumps(
+    outp = REPO / f"data/near_detector/e2e_{args.game}.json"
+    outp.parent.mkdir(parents=True, exist_ok=True)
+    outp.write_text(json.dumps(
         {"gt_n": len(gt), "events": ev, "spot_recall": spot_recall,
-         "spot_precision": spot_prec, "e2e_acc": e2e_acc}, indent=1, default=str))
+         "spot_precision": spot_prec, "e2e_acc": e2e_acc,
+         "make_recall": (sum(e['pred_make'] for e in mk)/len(mk)) if mk else None,
+         "miss_recall": (sum(not e['pred_make'] for e in ms)/len(ms)) if ms else None},
+        indent=1, default=str))
 
 
 if __name__ == "__main__":
