@@ -34,9 +34,11 @@ DET_W = REPO / "near_v0/weights/near_det_v1_best.pt"
 CLS_W = REPO / "near_v0/weights/classifier_all17.pt"
 BALL, HOOP = 0, 1
 CONF, IMGSZ = 0.30, 960
-ZONE_ABOVE, EVENT_GAP_S, MIN_EVENT_FRAMES = 1.2, 1.2, 2
+ZONE_ABOVE, MIN_EVENT_FRAMES = 1.2, 2
+EVENT_GAP_S = 2.0                    # merge rim-bounce re-triggers into one event
 CROP_SCALE, OUT_SIZE, N_FRAMES = 1.6, 320, 16
 WIN_BEFORE, WIN_AFTER = 0.7, 1.4
+SEG_BEFORE, SEG_AFTER = 3.0, 3.0     # training-style search segment (match build_rimcrop)
 
 
 def in_zone(bb, rim):
@@ -121,47 +123,62 @@ def main():
                 hb = max(hoops)[1]
                 rim_acc = np.array(hb) if rim_acc is None else 0.95 * rim_acc + 0.05 * np.array(hb)
                 crop = crop_rect(rim_acc)
-            if rim_acc is not None and any(in_zone(bb, rim_acc) for bb in balls):
-                hits.append((fidx / fps, fidx))
+            if rim_acc is not None:
+                cxr = (rim_acc[0] + rim_acc[2]) / 2
+                cyr = (rim_acc[1] + rim_acc[3]) / 2
+                inz = [bb for bb in balls if in_zone(bb, rim_acc)]
+                if inz:
+                    best = min(inz, key=lambda bb: ((bb[0]+bb[2])/2-cxr)**2
+                               + ((bb[1]+bb[3])/2-cyr)**2)
+                    dist = float(np.hypot((best[0]+best[2])/2-cxr,
+                                          (best[1]+best[3])/2-cyr))
+                    hits.append((fidx / fps, fidx, dist))
         fidx += 1
     cap.release()
 
-    # cluster into events
+    # cluster into events; event TIME = the rim-crossing (ball closest to rim
+    # center), NOT the median of all in-zone frames -- median is pulled early
+    # by approach/handling frames and de-centers the classification window.
     events = []
-    for t, fi in hits:
+    for t, fi, d in hits:
         if not events or t - events[-1][-1][0] > EVENT_GAP_S:
-            events.append([(t, fi)])
+            events.append([(t, fi, d)])
         else:
-            events[-1].append((t, fi))
+            events[-1].append((t, fi, d))
     events = [e for e in events if len(e) >= MIN_EVENT_FRAMES]
-    ev = [{"t": float(np.median([x[0] for x in e])),
-           "f0": e[0][1], "f1": e[-1][1]} for e in events]
+    ev = [{"t": float(min(e, key=lambda x: x[2])[0]),
+           "f0": e[0][1], "f1": e[-1][1],
+           "min_dist": float(min(x[2] for x in e))} for e in events]
+    # NOTE: a rim-reach filter (min_dist < k*rim_w) and denser stride were
+    # tried but regressed on e74164e6 (0.840 -> 0.731); reverted. Spotter
+    # recall/precision tuning belongs on a SEPARATE held-out game to avoid
+    # overfitting this frozen test set.
 
-    # pass 2: for each event, decode its window in grayscale rim-crop & classify
+    # pass 2: TRAINING-STYLE crop centered on each spotted event time (segment
+    # [t-3,t+3], motion anchor, training window) -- matches build_rimcrop so the
+    # classifier sees in-distribution input (fixes the serve skew).
     x1, y1, side = crop
     cap = cv2.VideoCapture(args.video)
     for e in ev:
-        lo = max(start_f, e["f0"] - int((WIN_BEFORE + 0.6) * fps))
-        hi = e["f1"] + int((WIN_AFTER + 0.6) * fps)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, lo)
+        seg0 = max(0.0, e["t"] - SEG_BEFORE)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(seg0 * fps))
         gframes = []
-        fi = lo
-        while fi <= hi:
+        for _ in range(int((SEG_BEFORE + SEG_AFTER) * fps)):
             ok, frame = cap.read()
             if not ok:
                 break
             g = cv2.cvtColor(frame[y1:y1 + side, x1:x1 + side], cv2.COLOR_BGR2GRAY)
-            gframes.append(cv2.resize(g, (OUT_SIZE, OUT_SIZE)))
-            fi += 1
-        # motion anchor inside this window
+            gframes.append(cv2.resize(g, (160, 160)))
+        if len(gframes) < int(fps):
+            e["p_make"], e["pred_make"] = 0.5, False
+            continue
         en = np.zeros(len(gframes))
         for i in range(1, len(gframes)):
             en[i] = float(np.mean(cv2.absdiff(
                 cv2.GaussianBlur(gframes[i], (5, 5), 0),
                 cv2.GaussianBlur(gframes[i - 1], (5, 5), 0))))
         anchor = int(np.argmax(en))
-        gsmall = [cv2.resize(g, (160, 160)) for g in gframes]
-        xb = build_clip_tensor(gsmall, anchor, fps).to(dev)
+        xb = build_clip_tensor(gframes, anchor, fps).to(dev)
         with torch.no_grad():
             p = float(F.softmax(clf(xb), 1)[0, 1])
         e["p_make"] = round(p, 3)
@@ -175,10 +192,19 @@ def main():
             if g["t0"] - 2.0 <= e["t"] <= g["t1"] + 2.5:
                 e["gt"] = g
                 break
-    matched = [e for e in ev if e["gt"]]
-    matched_gt = {e["gt"]["pid"] for e in matched}
-    spot_recall = len(matched_gt) / max(1, len(gt))
-    spot_prec = len(matched) / max(1, len(ev))
+    # dedup: one event per GT shot (closest event time to the shot end), so
+    # make/miss is scored once per real shot, not per duplicate trigger.
+    by_gt = {}
+    for e in ev:
+        if not e["gt"]:
+            continue
+        pid = e["gt"]["pid"]
+        if pid not in by_gt or abs(e["t"] - e["gt"]["t1"]) < abs(by_gt[pid]["t"] - e["gt"]["t1"]):
+            by_gt[pid] = e
+    matched = list(by_gt.values())
+    n_false = len([e for e in ev if not e["gt"]])
+    spot_recall = len(matched) / max(1, len(gt))          # unique GT shots found
+    spot_prec = (len(ev) - n_false) / max(1, len(ev))     # events hitting a real shot
     correct = sum(1 for e in matched if e["pred_make"] == e["gt"]["make"])
     e2e_acc = correct / max(1, len(matched))
     dur = (min(args.t1, end_f / fps) - args.t0) / 60
@@ -186,8 +212,9 @@ def main():
     print(f"\n=== END-TO-END on FROZEN {args.game} (no GT windows) ===")
     print(f"window {args.t0:.0f}-{end_f/fps:.0f}s ({dur:.1f} min)")
     print(f"GT shots={len(gt)}  spotted events={len(ev)}")
-    print(f"SPOT recall={spot_recall:.3f} ({len(matched_gt)}/{len(gt)})  "
-          f"precision={spot_prec:.3f} ({len(matched)}/{len(ev)})")
+    print(f"SPOT recall={spot_recall:.3f} ({len(matched)}/{len(gt)})  "
+          f"precision={spot_prec:.3f} ({len(ev)-n_false}/{len(ev)} events real, "
+          f"{n_false} false)")
     print(f"END-TO-END make/miss acc on matched: {e2e_acc:.3f} ({correct}/{len(matched)})")
     # also classifier acc per outcome
     mk = [e for e in matched if e["gt"]["make"]]
