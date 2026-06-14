@@ -34,11 +34,11 @@ for row in "${GAMES[@]}"; do
   echo "##### $G ($D) window $T0-$T1 #####"
   aws s3 cp "$SRC/$D/$U/${D}_${U}_NR.mp4" /work/vid.mp4 --only-show-errors
   python3 near_v0/test_end_to_end.py --game "$G" --video /work/vid.mp4 \
-    --manifest "/work/frozen_manifests/$G.json" --t0 "$T0" --t1 "$T1" --stride 2 \
+    --manifest "/work/frozen_manifests/$G.json" --t0 "$T0" --t1 "$T1" --stride 1 \
     --det /work/weights/near_det_v1_best.pt \
     --clf /work/weights/classifier_all17.pt 2>&1 | grep -E "END-TO-END|SPOT|make recall|miss recall|GT shots" | tee "/work/out_$G.txt"
-  aws s3 cp "/work/data/near_detector/e2e_$G.json" "$P/out_v2/e2e_$G.json" >/dev/null 2>&1 || true
-  aws s3 cp "/work/out_$G.txt" "$P/out_v2/out_$G.txt" >/dev/null 2>&1 || true
+  aws s3 cp "/work/data/near_detector/e2e_$G.json" "$P/out_s1/e2e_$G.json" >/dev/null 2>&1 || true
+  aws s3 cp "/work/out_$G.txt" "$P/out_s1/out_$G.txt" >/dev/null 2>&1 || true
   rm -f /work/vid.mp4
 done
 echo "E2E_VALIDATION_DONE"

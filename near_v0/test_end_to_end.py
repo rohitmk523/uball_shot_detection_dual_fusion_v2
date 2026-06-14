@@ -34,10 +34,11 @@ DET_W = REPO / "near_v0/weights/near_det_v1_best.pt"
 CLS_W = REPO / "near_v0/weights/classifier_all17.pt"
 BALL, HOOP = 0, 1
 CONF, IMGSZ = 0.30, 960
-# v0.2 spotter defaults (swept on held-out 72c08cb7+9eb51980): wide zone for
-# recall + rim-reach filter for precision; event TIME stays rim-crossing.
-ZONE_ABOVE, MIN_EVENT_FRAMES = 2.5, 2
-REACH_FRAC = 0.8                     # event valid only if ball reached < 0.8*rim_w of center
+# Spotter config. Stride-1 recall test = v0.1 config (tight zone, NO reach
+# filter) + dense sampling, to isolate the dense-sampling effect on recall.
+# REACH_FRAC>=1 disables the rim-reach filter. event TIME stays rim-crossing.
+ZONE_ABOVE, MIN_EVENT_FRAMES = 1.2, 2
+REACH_FRAC = 99.0                    # >=1 disables the filter (keep all events)
 EVENT_GAP_S = 2.0                    # merge rim-bounce re-triggers into one event
 CROP_SCALE, OUT_SIZE, N_FRAMES = 1.6, 320, 16
 WIN_BEFORE, WIN_AFTER = 0.7, 1.4
