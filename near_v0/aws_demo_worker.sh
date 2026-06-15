@@ -28,6 +28,6 @@ python3 near_v0/demo_game.py --game "$G" --nr /work/nr.mp4 --fr /work/fr.mp4 \
 
 ffmpeg -y -i "/work/${G}_raw.mp4" -c:v libx264 -pix_fmt yuv420p -crf 21 \
   -movflags +faststart "/work/${G}_demo.mp4" 2>/dev/null
-aws s3 cp "/work/${G}_demo.mp4" "$P/out/${G}_demo.mp4" >/dev/null
+aws s3 cp "/work/${G}_demo.mp4" "$P/out_v3/${G}_demo.mp4" >/dev/null
 rm -f /work/nr.mp4 /work/fr.mp4
 echo "DEMO_DONE $G"

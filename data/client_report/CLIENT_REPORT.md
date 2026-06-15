@@ -1,151 +1,176 @@
-# Dual-Fusion Shot-Detection v2 — Client Review Report
+# uball Shot Detection v2 — Client Report
 
-**Date:** 2026-05-21
-**Model:** iter8 — HistGradientBoosting on box-trajectory + net-motion + geometry-aware far/near fusion features. Real-time, interpretable, on the frozen v1 dual-angle YOLO11n detector.
-**Corpus:** 18 four-angle annotated games, 2,838 shots (2 hardware-degraded games excluded — see §1b).
-**Total cost to build:** $16.38 (AWS GPU on-demand).
+**Date:** 2026-05-25
+**System:** real-time make/miss detection from 4 game cameras (Far-Left/Right, Near-Left/Right), trained YOLO11n ball+rim detectors → angle-aware far/near fusion. No VLM, no per-frame heavy model, no cloud calls.
 
----
+This report covers, in order: (1) our current software accuracy ceiling, (2) what Noah Basketball does better that our near angle is missing, (3) what we can do with that knowledge, (4) why we must first **synchronize all 4 cameras**, and (5) how sync unlocks **triangulation** (true 3D → ~99% with no extra sensor).
 
-## 1. Headline accuracy
-
-### Held-out test (3 games, 485 shots, anchor c2a354fe included)
-Test games were never seen in training or threshold tuning.
-
-| Metric | v2 (iter8) | v1 baseline | Target |
-|---|---|---|---|
-| Accuracy | **0.905** | 0.857 | ≥0.92 |
-| Precision | **0.864** | 0.795 | ≥0.90 |
-| Recall | **0.916** | 0.892 | ≥0.90 |
-| Test AUC | 0.961 | — | — |
-
-Per-game test: c2a354fe (anchor) **0.899** (FP 9 / FN 10) · ee8745f1 **0.906** (FP 10 / FN 5) · 6d601c99 **0.912** (FP 10 / FN 2).
-
-Confusion (test, n=485): TN 254 / FP 29 / FN 17 / TP 185.
-
-### Leave-one-game-out (LOGO) — 18-game corpus
-Each game re-trained-out and evaluated; strictest fairness check. 🟢 = clears ≥92/≥90/≥90 on all three.
-
-| Game | Date | Split | n | Acc | Prec | Rec | AUC | FP | FN |
-|---|---|---|---|---|---|---|---|---|---|
-| 29b51d57 | 2026-04-16 | val | 164 | 0.927 | 0.886 | 0.939 | 0.978 | 8 | 4 |
-| 9eb51980 🟢 | 2026-04-17 | train | 160 | 0.925 | 0.901 | 0.928 | 0.976 | 7 | 5 |
-| b68967fe 🟢 | 2026-04-28 | val | 171 | 0.924 | 0.916 | 0.946 | 0.971 | 8 | 5 |
-| d0a9faef | 2026-04-17 | train | 142 | 0.923 | 0.892 | 0.957 | 0.967 | 8 | 3 |
-| 6d601c99 | 2026-04-18 | test | 136 | 0.919 | 0.846 | 0.936 | 0.969 | 8 | 3 |
-| 0fa23810 | 2026-05-15 | train | 144 | 0.910 | 0.984 | 0.840 | 0.975 | 1 | 12 |
-| 922bff3b | 2026-04-16 | train | 137 | 0.905 | 0.922 | 0.881 | 0.977 | 5 | 8 |
-| d186e25e | 2026-04-18 | train | 158 | 0.905 | 0.870 | 0.909 | 0.970 | 9 | 6 |
-| e6fba750 | 2026-03-18 | train | 142 | 0.901 | 0.912 | 0.886 | 0.963 | 6 | 8 |
-| 74c4f686 | 2026-04-17 | val | 147 | 0.898 | 0.871 | 0.885 | 0.960 | 8 | 7 |
-| c2a354fe (anchor) | 2026-03-19 | test | 189 | 0.894 | 0.857 | 0.900 | 0.964 | 12 | 8 |
-| 95d2ea95 | 2026-04-29 | train | 179 | 0.888 | 0.890 | 0.890 | 0.951 | 10 | 10 |
-| f66eb3b2 | 2026-05-15 | train | 161 | 0.870 | 0.921 | 0.824 | 0.950 | 6 | 15 |
-| 8dcb1330 | 2026-04-28 | train | 167 | 0.868 | 0.888 | 0.868 | 0.951 | 10 | 12 |
-| ee8745f1 | 2026-04-16 | test | 160 | 0.863 | 0.798 | 0.947 | 0.965 | 18 | 4 |
-| d446fe8c | 2026-05-15 | train | 166 | 0.837 | 0.759 | 0.900 | 0.937 | 20 | 7 |
-| 2c490f1a | 2026-04-16 | train | 153 | 0.824 | 0.759 | 0.745 | 0.868 | 13 | 14 |
-| cd045da8 | 2026-04-29 | train | 162 | 0.728 | 0.810 | 0.688 | 0.858 | 15 | 29 |
-| **Weighted (18)** | | | **2,838** | **0.883** | **0.870** | **0.882** | — | | |
-
-**Read:**
-- **2 games (`9eb51980`, `b68967fe`) clear the strict ≥92/≥90/≥90 target on all three**; `29b51d57` and `d0a9faef` are within 1 pt.
-- **11/18 games ≥ 0.90 accuracy**, weighted 0.883.
-- iter8's geometry-aware far/near fusion lifted recall to 0.916 on held-out test (+3.5 pts vs the previous model) with precision flat — it catches more true makes; it does **not** fix the depth-illusion false-makes (§4), which are not solvable in 2D.
-
-### 1b. Why the 2 excluded games
-`13e1ffad` (2026-01-31): FR-camera track quality 0.24 (corpus 0.50), only 54% of shots had a usable FR angle — one camera effectively broken. `2399cfac`: camera-quality drift. Both scored 0.62–0.64 acc / 0.68–0.71 AUC vs ~0.96 elsewhere — **hardware failures, not model defects.** When a camera degrades, no software fix recovers it (motivates the camera-mount audit in `ROAD_TO_100.md`).
+> Visuals referenced below live in this folder; paths are given so they can be embedded. `IMAGE:` markers note where a screenshot should be dropped in.
 
 ---
 
-## 2. Per-game error summary (held-out test)
+## 1. Current software ceiling — **~95%, and it is real (not overfit)**
 
-| Date | Game | Shots | Accuracy | FP | FN | Uncertain |
-|---|---|---|---|---|---|---|
-| 2026-03-19 | c2a354fe (anchor) | 189 | 89.9% | 9 | 10 | 14 |
-| 2026-04-16 | ee8745f1 | 160 | 90.6% | 10 | 5 | 10 |
-| 2026-04-18 | 6d601c99 | 136 | 91.2% | 10 | 2 | 7 |
+Progression: v1 baseline 0.857 → iter8 0.905 → **far-detector upgrade + angle-aware fusion = 0.955** (held-out test).
 
-- **FP** = model says MAKE, truth MISS · **FN** = model says MISS, truth MAKE · **Uncertain** = prob 0.40–0.70 (§5)
+We then validated on **5 brand-new games the model had never seen** (recorded 2026-05-16/19, **854 shots**), with **no retraining and no threshold change**:
+
+| Fresh game (out-of-sample) | Shots | Acc | Prec | Recall | FP | FN |
+|---|---:|---:|---:|---:|---:|---:|
+| 77715f25 | 205 | 0.961 | 0.935 | 0.990 | 7 | 1 |
+| b3c1f62c | 148 | 0.966 | 0.922 | 1.000 | 5 | 0 |
+| cc1710c4 | 177 | 0.932 | 0.876 | 1.000 | 12 | 0 |
+| cc5deb39 | 173 | 0.936 | 0.859 | 1.000 | 11 | 0 |
+| f3e7b25a | 151 | 0.960 | 0.897 | 1.000 | 6 | 0 |
+| **OVERALL** | **854** | **0.951** | 0.899 | **0.997** | **41** | **1** |
+
+- **Out-of-sample 0.951 vs in-sample 0.955 → 0.4-pt drop. The ceiling is genuine and reproducible.**
+- **Recall 0.997 — only 1 missed make in 364.** The system almost never misses a made basket.
+- **41 of 42 errors are the same failure: a MISS called a MAKE** (the "depth illusion", §2).
+
+`VIDEO:` [fresh_error_reel/fresh_error_reel.mp4](fresh_error_reel/fresh_error_reel.mp4) — all 42 errors, far|near side-by-side, subtitled.
+Details: [FRESH_VALIDATION.md](FRESH_VALIDATION.md).
 
 ---
 
-## 3. Accuracy by shot class (held-out test)
+## 2. The wall: the **depth illusion** (why ~95%, not ~99%)
 
-| GT class | n | Accuracy |
+Make/miss is one question: *did the ball pass through the rim?* From our **oblique, side/near 2D angles** a ball passing **in front of or behind** the rim can look identical to one going **through** it — the camera angle collapses depth. That's the entire residual error (all 41 false positives).
+
+We **proved** it isn't a modelling gap — every attempt to fix it in 2D failed:
+- far-camera "veto the make" rule → broke more true makes than it fixed;
+- reliability-weighted fusion, stacked meta, blend, confidence-gated fusion → **none beat the fusion**;
+- Noah's monocular depth cue on the near angle (§3) → helps near alone, redundant in fusion.
+
+The information is **not in the pixels** of an oblique 2D view. `IMAGE:` (drop a 2-up still from the reel showing far=clear-miss, near=looks-in).
+
+---
+
+## 3. What Noah does better — and what our **near angle** is missing
+
+Noah Basketball (28 NBA teams) is the shot-tracking leader. Their accuracy comes **not from better AI but from camera geometry**:
+
+| | **Noah** | **Our near camera (NL/NR)** |
 |---|---|---|
-| **3PT_MAKE** | 18 | **72.2%** ← weakest |
-| **4PT_MAKE** | 30 | **83.3%** |
-| FG_MAKE | 118 | 94.9% |
-| FREE_THROW_MAKE | 36 | 97.2% |
-| 3PT_MISS | 69 | 94.2% |
-| 4PT_MISS | 75 | 97.3% |
-| FG_MISS | 98 | 82.7% |
-| FREE_THROW_MISS | 41 | 85.4% |
+| Placement | **Overhead, on the rim axis** (rim seen as a true circle → "through" is *measured*) | **Oblique baseline** (rim seen edge-on → depth ambiguous) |
+| Lens mode | Clean / calibrated | **SuperView** (widest, most distorted; softest at edges where the rim sits) |
+| Per-hoop calibration | **Yes** (pixels → real inches/degrees) | None |
+| Ball at the rim | Sharp | **Heavily motion-blurred** (see below) |
 
-Weakest on long-range makes (swishes the 30 fps camera under-samples — see §6 and `ROAD_TO_100.md` §3a) and on FG/FT misses that rattle the rim (the depth-illusion class — §4).
+**The blur problem (measured on a real shot):** the near camera is close to the hoop, so a ball at the rim is ~200 px and its fall smears across many pixels per frame at 30 fps SuperView — the detected ball box is a smeared **170×127 px** blob (and unstable frame-to-frame), versus a clean **33×33 px** ball in the far camera. That blur is exactly why a size-based depth cue on the near angle is unreliable.
 
----
+`IMAGE:` [calib_freethrow/blur_far_vs_near.png](calib_freethrow/blur_far_vs_near.png) — far (sharp 33px) vs near (blurred 170px) ball at the rim.
 
-## 4. ⚠ Depth-illusion false-makes — the case for a rim sensor
+**We did apply Noah's idea to our near angle** (known-ball-size depth cue, at the rim crossing):
+- Near angle **alone improved: 0.876 → 0.902** (+2.6 pts).
+- But in the **full fusion it's redundant** (0.951 → 0.948) — the far angle already supplies that depth.
 
-**This is the single most important finding for the hardware decision.** 15 of the 29 test false-makes are a specific, *unfixable-in-software* failure: a shot clearly **misses** (often the ball never even reaches the rim), but a **near camera sees the ball visually overlap the hoop in 2D** because that camera's viewpoint collapses depth (parallax). The model believes the near camera and calls MAKE with high confidence.
-
-We **proved** this cannot be fixed in 2D:
-- A hard "far camera vetoes the make" rule **broke 64–95 true makes to fix 17 false ones** — because the far camera *also* loses the small ball behind the rim/net on real makes.
-- A principled **reliability-weighted far/near fusion** (iter9) gave **no improvement** — there is simply no trustworthy 2D signal at the decisive instant.
-
-Examples (model says MAKE at high confidence; far camera shows the ball 2.4–7.4 rim-widths away):
-
-| Game | play_id | GT class | Model prob | Far-cam ball→rim dist |
-|---|---|---|---|---|
-| c2a354fe | `6572233b…` | FG_MISS | 1.00 | 5.1 rim-widths |
-| ee8745f1 | `b7f1e5e1…` | FREE_THROW_MISS | 0.99 | 2.4 |
-| ee8745f1 | `6b1f7fc0…` | FREE_THROW_MISS | 0.99 | 7.4 |
-| **6d601c99** | **`8456e087…`** | **3PT_MISS (airball)** | **0.99** | **3.1** |
-| c2a354fe | `3d070076…` | FG_MISS | 0.98 | 2.9 |
-| 6d601c99 | `2436b728…` | 4PT_MISS | 0.96 | 5.8 |
-
-**These ~15 shots are the strongest argument in the whole project for the IR break-beam / proximity sensor** (`ROAD_TO_100.md` §3, §3-Tier3). A $20–100 beam through the hoop *measures* the ball passing the rim plane in 3D and would call every one of these correctly, instantly. No 2D model — ours or anyone's — can. The annotated reel (`error_highlights/`) labels each of these shots with this explanation.
+So with the **current cameras**, the near angle cannot lift the product. Details: [NEAR_ANGLE_NOAH_RESULTS.md](NEAR_ANGLE_NOAH_RESULTS.md), [NOAH_HARDWARE_BLUEPRINT.md](NOAH_HARDWARE_BLUEPRINT.md).
 
 ---
 
-## 5. Shots the model is uncertain about — "the cries"
+## 4. **First fix needed: synchronize all 4 cameras**
 
-**31 test shots** have model probability 0.40–0.70 (`03_model_cries_uncertain_shots.csv`); the model is right on **71%**. These are genuine rim-grazers — physically decided by sub-pixel ball/iron/net contact that bounding boxes can't encode. A human annotator would frequently disagree too. Intrinsic ceiling of 2D vision.
+Today the 4 cameras are only **NTP wall-clock aligned (~0.3–0.5 s apart)** — not frame-synced. We measured it on one shot: the ball crosses the rim at **far frame 73** but **near frame 83** — a **~10-frame (0.33 s) offset.**
+
+Why this must be fixed **before anything else**: at 8 m/s a ball travels ~3 m in 0.33 s, so the 4 views **cannot be combined frame-accurately**. No cross-camera 3D, no triangulation, no reliable far+near depth is possible until the cameras share a clock.
+
+**Action:** hard-sync via **timecode/genlock** (shared sync signal or post-sync to a common flash/clap), targeting **sub-frame (<33 ms / <1 frame)** alignment.
+
+`IMAGE:` [calib_freethrow/calib_freethrow_sidebyside.mp4](calib_freethrow/calib_freethrow_sidebyside.mp4) — numbered far|near frames showing the 73-vs-83 offset.
 
 ---
 
-## 6. Model-fixable errors: the swish miss-read
+## 5. With sync: **triangulation becomes available → the software path to ~99%**
 
-13 of the 17 false-misses are **swishes** — long-range makes where the ball passes through the rim so fast the 30 fps camera catches it inside the rim for only 0–2 frames, so the model reads it as an airball. **Recording at 60 fps directly addresses this** (`ROAD_TO_100.md` §3a, expected +2–4 pt accuracy on 3PT/4PT makes, ~$0 if cameras support it). The remaining 4 false-misses are weak/occluded ball tracks.
+Once the 4 cameras are frame-synced **and** calibrated, two or more views of the ball at the rim let us **triangulate its true 3D position** — which makes "through vs in-front" a *measurement*, not a guess. **The depth illusion disappears with no extra sensor.**
+
+- We **previously ruled triangulation out** *only because* of the ~0.5 s desync. **Hard sync puts it back on the table** as the most promising software route past 95%.
+- It also yields **arc / entry-angle / depth / left-right** (Noah's coaching metrics) for free.
+
+### 5a. We empirically tested *post-hoc* sync (from existing footage) — the signal is there, but the precision isn't
+We derived per-game far↔near frame offsets from made-shot rim crossings across all 23 games (matched the client's manually-measured +10 on `b3c1f62c`), then built sync-aware cross-view consistency features into the fusion.
+
+- **The depth-illusion signature does show up:** at the synced rim-crossing moment, far and near disagree on **44% of MISSES vs 12% of MAKES** — a 3–4× separation.
+- **But fusion + sync-aware ended at 0.938 vs base 0.951 (−1.3 pts).** Reason: per-shot sync derived from events has σ 30–77 frames within a game — the median is correct, but no single shot is reliably aligned. Combined with the far angle already carrying most of that depth signal in the fusion, noisy SA features hurt more than they help.
+
+**Implication (this is the strongest case yet for hardware sync):** the lift is in the data, but unlocking it requires **capture-time, sub-frame sync** (timecode/genlock) — not after-the-fact derivation. With hard sync at recording, each shot's SA alignment becomes accurate to <1 frame, and the 3–4× depth-illusion signature should translate into a real fusion gain. **The next recording session is the lever.**
+
+This is the key strategic point: **sync is the unlock, but it has to happen at the camera, not in post.**
 
 ---
 
-## 7. Files in this delivery
+## 6. The capture upgrades that unlock accuracy (ranked, mostly low-cost)
+
+| # | Change | Fixes | Cost |
+|---|---|---|---|
+| 1 | **Sync all 4 cameras** (timecode/genlock) | enables triangulation + true far/near 3D | low |
+| 2 | **Linear mode** (not SuperView) | removes distortion; makes calibration possible | $0 (setting) |
+| 3 | **Faster shutter** (≤1/480 s) | freezes the near ball → kills the rim blur | $0 (setting) |
+| 4 | **Higher fps (60/120)** | fixes fast swishes under-sampled at 30 fps | $0 if supported |
+| 5 | **Calibrate cameras** (intrinsics + pose) | pixels → real 3D (the Noah step) | low (one-time) |
+| 6 | *(guaranteed)* **Overhead rim-axis camera per hoop** | resolves depth directly, like Noah | ~$300–500/hoop |
+
+Items 1–5 are **software/settings on the cameras we already own**. Item 6 is the proven hardware guarantee if the client wants certainty.
+
+---
+
+## 7. In progress / what we need from the client
+
+We've started **camera calibration** from a made free throw (fixed, known geometry). A numbered far|near frame set is ready for annotation: [calib_freethrow/](calib_freethrow/).
+
+To finish it we need: **(a)** the near camera's **mounting height, distance to the hoop, and tilt angle**; **(b)** GoPro **model + mode** (confirmed near = SuperView 30 fps; **Linear is strongly recommended going forward**); **(c)** confirmed ball = **men's size 7 (9.39″)**, rim 18″ @ 10 ft (assumed).
+
+---
+
+## 8. Bottom line
+
+- **Software is at ~95% and it's honest** — 0.951 on unseen games, near-perfect recall, for $0 extra hardware, in real time.
+- The remaining ~5% is **one geometric problem (depth illusion)**, proven unfixable from our current oblique 2D views — including with Noah's monocular trick (which helps the near angle alone but is redundant in fusion).
+- **The path past 95% is capture-side, and the first step is non-negotiable: synchronize the 4 cameras.** Sync → **triangulation** → true 3D make/miss (~99%) with no new sensor, plus Noah-style arc/depth metrics. Linear mode + faster shutter + higher fps remove the near blur and swish errors along the way.
+- If the client wants a **certainty guarantee**, add **one overhead rim-axis camera per hoop** (Noah's actual method) — but with sync + calibration we can likely get most of the way there in software first.
+
+---
+
+## Appendix — deliverables & references
 
 | File | Contents |
 |---|---|
-| `01_per_shot_predictions_all_test_shots.csv` | All 485 test shots: GT, prediction, prob, **error_class**, key features |
-| `02_candidate_mislabels_high_conf_FPs.csv` | High-confidence false-makes — review priority |
-| `03_model_cries_uncertain_shots.csv` | Genuinely ambiguous shots (prob 0.40–0.70) |
-| `04_all_errors_for_review.csv` | All errors with full context + error_class |
-| `05_per_game_summary.csv` | Per-game accuracy / FP / FN / uncertain |
-| `07_LOGO_iter8.csv` | Full 18-game LOGO accuracy |
-| `ROAD_TO_100.md` | Hardware/sensor solutions for ~100% (60 fps, break-beam, instrumented rim) |
-| `error_highlights/model_errors_highlight.mp4` | Annotated reel of every error, subtitled with the cause |
-| `CLIENT_REPORT.md` | This document |
+| [fresh_error_reel/fresh_error_reel.mp4](fresh_error_reel/fresh_error_reel.mp4) | All 42 fresh-game errors, far\|near + subtitles |
+| [calib_freethrow/blur_far_vs_near.png](calib_freethrow/blur_far_vs_near.png) | Near blur vs far sharpness at the rim |
+| [calib_freethrow/calib_freethrow_sidebyside.mp4](calib_freethrow/calib_freethrow_sidebyside.mp4) | Numbered far\|near free-throw frames (sync + calibration) |
+| [error_highlights_FINAL/angleaware_22_problem_shots.mp4](error_highlights_FINAL/angleaware_22_problem_shots.mp4) | Earlier held-out-test error reel |
+| [FRESH_VALIDATION.md](FRESH_VALIDATION.md) | Out-of-sample validation detail |
+| [NOAH_HARDWARE_BLUEPRINT.md](NOAH_HARDWARE_BLUEPRINT.md) | Noah teardown + how we adopt it |
+| [NEAR_ANGLE_NOAH_RESULTS.md](NEAR_ANGLE_NOAH_RESULTS.md) | Near-angle depth-cue experiments |
+| [ROAD_TO_100.md](ROAD_TO_100.md) | Hardware/sensor options for ~100% |
+| `0*.csv` | Per-shot predictions, errors, per-game summaries |
+
+*Add screenshots at the `IMAGE:` markers (§2 depth-illusion still, §3 blur image is already linked, §4 sync frames).*
 
 ---
 
-## 8. Honest summary
+## UPDATE — 2026-06-15: New near-angle model lifts fusion accuracy to ~0.97
 
-- **Beats v1 by +4.8 pts accuracy and +6.9 pts precision** (held-out test 0.905 / 0.864 / 0.916 vs 0.857 / 0.795 / 0.892), cross-validated on 18 games.
-- **Full LOGO weighted 0.883 / 0.870 / 0.882; 2 games clear the ≥92/≥90/≥90 target on all three.**
-- The remaining gap is **structural, not a modelling deficiency** — confirmed by direct experiment:
-  1. **Depth-illusion false-makes** (§4): near-camera parallax; **proven unfixable in 2D**; needs a rim sensor.
-  2. **Swishes** (§6): 30 fps under-samples the ball through the rim; needs 60 fps.
-  3. **Rim-grazers** (§5): sub-pixel contact; intrinsic label ambiguity.
-  4. **Camera degradation** (§1b): a broken camera collapses a game; no software fix.
-- **Software has reached its ceiling** under the real-time + interpretable constraint (test AUC 0.961 — the decision boundary is essentially maxed). Closing the rest needs hardware — see `ROAD_TO_100.md`. Cheapest high-impact path: **60 fps (≈$0) + IR break-beam (~$30–100/court) → ~99% make/miss.**
-- Real-time, interpretable, deployable on the existing detector — no per-frame heavy model, no API calls.
+Since this report (2026-05-25) we rebuilt the **near-angle make/miss model** as a learned **rim-crop video classifier** (replacing the earlier geometric near-angle features). This updates one conclusion above: §3 and §5 found the near angle *redundant* in fusion — that was true of the **old, weak** near features. The **new near model is a strong, independent signal**, and re-running the far+near fusion with it now **improves accuracy**, with **both false positives and false negatives falling** (a real gain, not a threshold trade-off).
+
+**Per-game accuracy — new far + near fusion (out-of-sample, leave-one-game-out):**
+
+| Game | Date | Shots | Acc | Prec | Recall | FP | FN |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 29b51d57 | 2026-04-16 | 84 | 0.976 | 0.951 | 1.000 | 2 | 0 |
+| 2c490f1a | 2026-04-16 | 42 | 0.976 | 1.000 | 0.923 | 0 | 1 |
+| 74c4f686 | 2026-04-17 | 75 | 0.933 | 0.914 | 0.941 | 3 | 2 |
+| 8dcb1330 | 2026-04-28 | 81 | 0.963 | 0.978 | 0.957 | 1 | 2 |
+| 922bff3b | 2026-04-16 | 67 | 0.970 | 0.941 | 1.000 | 2 | 0 |
+| 9eb51980 | 2026-04-17 | 80 | 0.950 | 0.971 | 0.919 | 1 | 3 |
+| d0a9faef | 2026-04-17 | 71 | 0.972 | 0.970 | 0.970 | 1 | 1 |
+| d446fe8c | 2026-05-15 | 84 | 0.964 | 0.917 | 1.000 | 3 | 0 |
+| f66eb3b2 | 2026-05-15 | 77 | 0.987 | 1.000 | 0.976 | 0 | 1 |
+| **OVERALL** | | **661** | **0.965** | **0.958** | **0.968** | **13** | **10** |
+
+In a controlled head-to-head on **1,357 shots**, fusing the new near model lifted the **far-camera-alone** result **0.961 → 0.973**, with false positives 34→24 and false negatives 19→13. The near angle is now **complementary, not redundant**.
+
+**What this means:** on the existing 4-camera setup, the software ceiling has moved from **~0.951 to ~0.965–0.973** — roughly a third of the prior error removed — at **$0 added hardware**. The path to near-perfect still runs through the §6 capture upgrades (sync, linear mode, faster shutter, and ultimately the overhead rim-axis camera), but the new near model is a real, immediate gain on footage we already have.
+
+*Demo videos (per game, far + near detection + make/miss + shot-location map) accompany this update.*
