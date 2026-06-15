@@ -18,16 +18,18 @@ tar xzf bundle.tar.gz
 python3 -c "import torch;print('cuda',torch.cuda.is_available())"
 
 read GG DATE UUID T < <(grep "^$G " games.txt)
-echo "game $G  $DATE  $UUID"
-aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_NR.mp4" /work/nr.mp4 --only-show-errors
-aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_FR.mp4" /work/fr.mp4 --only-show-errors
+echo "game $G  $DATE  $UUID  (both baskets)"
+for CAM in NR FR NL FL; do
+  aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_${CAM}.mp4" "/work/${CAM,,}.mp4" --only-show-errors
+done
 
-python3 near_v0/demo_game.py --game "$G" --nr /work/nr.mp4 --fr /work/fr.mp4 \
+python3 near_v0/demo_game.py --game "$G" \
+  --nr /work/nr.mp4 --fr /work/fr.mp4 --nl /work/nl.mp4 --fl /work/fl.mp4 \
   --shots "demo_data/$G.json" --out "/work/${G}_raw.mp4" \
   --near-w weights/near_det_v1_best.pt --far-w weights/far_v16_best.pt
 
 ffmpeg -y -i "/work/${G}_raw.mp4" -c:v libx264 -pix_fmt yuv420p -crf 21 \
   -movflags +faststart "/work/${G}_demo.mp4" 2>/dev/null
-aws s3 cp "/work/${G}_demo.mp4" "$P/out_v3/${G}_demo.mp4" >/dev/null
-rm -f /work/nr.mp4 /work/fr.mp4
+aws s3 cp "/work/${G}_demo.mp4" "$P/out_both/${G}_demo.mp4" >/dev/null
+rm -f /work/nr.mp4 /work/fr.mp4 /work/nl.mp4 /work/fl.mp4
 echo "DEMO_DONE $G"

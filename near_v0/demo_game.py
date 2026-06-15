@@ -141,7 +141,7 @@ def near_cross(near, vid, dev, t, hoop, fps):
 
 def main():
     ap = argparse.ArgumentParser()
-    for k in ["game", "nr", "fr", "shots", "out", "near-w", "far-w"]:
+    for k in ["game", "nr", "fr", "nl", "fl", "shots", "out", "near-w", "far-w"]:
         ap.add_argument(f"--{k}", required=True)
     ap.add_argument("--clip", type=float, default=2.6)
     a = ap.parse_args()
@@ -150,44 +150,56 @@ def main():
     dev = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
     near = YOLO(getattr(a, "near_w")); far = YOLO(getattr(a, "far_w"))
     data = json.load(open(a.shots)); shots = data["shots"]; acc = data.get("acc", 0)
-    print(f"{a.game}: {len(shots)} shots, fused acc {acc}")
+    nR = sum(s["basket"] == "RIGHT" for s in shots)
+    print(f"{a.game}: {len(shots)} shots (R={nR} L={len(shots)-nR}) near-acc {acc}")
 
-    fps_n = cv2.VideoCapture(a.nr).get(5) or 29.97
-    fps_f = cv2.VideoCapture(a.fr).get(5) or 29.97
-    ts = np.linspace(shots[0]["t0"], shots[-1]["t0"], 8)
-    nr_hoop = med_hoop(near, a.nr, dev, 960, ts); fr_hoop = med_hoop(far, a.fr, dev, 1280, ts)
-    if nr_hoop is None or fr_hoop is None:
-        print("ERROR: no hoop"); return
-    f_cx, f_cy = (fr_hoop[0]+fr_hoop[2])/2, (fr_hoop[1]+fr_hoop[3])/2 - 80
-    n_cx, n_cy = (nr_hoop[0]+nr_hoop[2])/2, (nr_hoop[1]+nr_hoop[3])/2 - 40
+    fps = cv2.VideoCapture(a.nr).get(5) or 29.97
+    # per-basket camera config: (near_vid, far_vid, near_hoop, far_hoop, n_center, f_center)
+    cfg = {}
+    for bk, nv, fv in [("RIGHT", a.nr, a.fr), ("LEFT", a.nl, a.fl)]:
+        bs = [s for s in shots if s["basket"] == bk]
+        if not bs:
+            continue
+        ts = np.linspace(bs[0]["t0"], bs[-1]["t0"], 8)
+        nh = med_hoop(near, nv, dev, 960, ts); fh = med_hoop(far, fv, dev, 1280, ts)
+        if nh is None or fh is None:
+            print(f"WARN: no hoop for {bk}, skipping that basket"); continue
+        cfg[bk] = dict(nv=nv, fv=fv, nh=nh, fh=fh,
+                       nc=((nh[0]+nh[2])/2, (nh[1]+nh[3])/2 - 40),
+                       fc=((fh[0]+fh[2])/2, (fh[1]+fh[3])/2 - 80),
+                       capN=cv2.VideoCapture(nv), capF=cv2.VideoCapture(fv))
+        print(f"  {bk}: near {[round(v) for v in nh]} far {[round(v) for v in fh]}")
+    shots = [s for s in shots if s["basket"] in cfg]
 
     pts = []
     vw = cv2.VideoWriter(a.out, cv2.VideoWriter_fourcc(*"mp4v"), 24, (1920, 1080))
-    capN, capF = cv2.VideoCapture(a.nr), cv2.VideoCapture(a.fr)
     for i, s in enumerate(shots):
-        t = s["t0"]; mk = bool(s["pred_make"])
-        nxn, nyn = near_cross(near, a.nr, dev, t, nr_hoop, fps_n)
+        t = s["t0"]; mk = bool(s["pred_make"]); c = cfg[s["basket"]]
+        nxn, nyn = near_cross(near, c["nv"], dev, t, c["nh"], fps)
         pts.append((nxn, nyn, mk))
         right = panel_right(pts, i, mk, i+1, len(shots), s["gt"], acc)
-        capN.set(1, int((t-a.clip*0.55)*fps_n)); capF.set(1, int((t-a.clip*0.55)*fps_f))
-        for _ in range(int(a.clip*fps_n)):
-            okn, frn = capN.read(); okf, frf = capF.read()
+        bktag = "RIGHT BASKET" if s["basket"] == "RIGHT" else "LEFT BASKET"
+        c["capN"].set(1, int((t-a.clip*0.55)*fps)); c["capF"].set(1, int((t-a.clip*0.55)*fps))
+        for _ in range(int(a.clip*fps)):
+            okn, frn = c["capN"].read(); okf, frf = c["capF"].read()
             if not (okn and okf):
                 break
             rF = far.predict(frf, conf=0.25, imgsz=1280, device=dev, verbose=False)[0]
             fb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rF.boxes]
-            fcrop, fx0, fy0, fw, fh = crop_aspect(frf, f_cx, f_cy, 540)
+            fcrop, fx0, fy0, fw, fh = crop_aspect(frf, c["fc"][0], c["fc"][1], 540)
             fc = cv2.resize(fcrop, (VW, VH)); draw_boxes(fc, fb, fx0, fy0, VW/fw, VH/fh)
-            fc = label_bar(fc, "FAR ANGLE")
+            fc = label_bar(fc, f"FAR ANGLE  ·  {bktag}")
             rN = near.predict(frn, conf=0.30, imgsz=960, device=dev, verbose=False)[0]
             nb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rN.boxes]
-            ncrop, nx0, ny0, nw, nh = crop_aspect(frn, n_cx, n_cy, 470)
+            ncrop, nx0, ny0, nw, nh = crop_aspect(frn, c["nc"][0], c["nc"][1], 470)
             nc = cv2.resize(ncrop, (VW, VH)); draw_boxes(nc, nb, nx0, ny0, VW/nw, VH/nh)
-            nc = label_bar(nc, "NEAR ANGLE  ·  make / miss", make=mk)
+            nc = label_bar(nc, f"NEAR ANGLE  ·  {bktag}", make=mk)
             vw.write(np.hstack([np.vstack([fc, nc]), right]))
-        if (i+1) % 20 == 0:
+        if (i+1) % 25 == 0:
             print(f"  {i+1}/{len(shots)} rendered", flush=True)
-    capN.release(); capF.release(); vw.release()
+    for c in cfg.values():
+        c["capN"].release(); c["capF"].release()
+    vw.release()
     print(f"DONE -> {a.out}")
 
 
