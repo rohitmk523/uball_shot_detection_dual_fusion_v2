@@ -123,7 +123,9 @@ def near_cross(near, vid, dev, t0, t1, hoop, fps):
     crossing_time). Fallback time = near the play end (where the shot lands)."""
     cxr, cyr = (hoop[0]+hoop[2])/2, (hoop[1]+hoop[3])/2
     rimw, rimh = hoop[2]-hoop[0], hoop[3]-hoop[1]
-    f0 = int((t0-0.3)*fps); n = int((t1-t0+0.8)*fps)
+    # the shot reaches the rim near the play END -> search [t1-2.5, t1+0.3]
+    # (much cheaper than the whole play window, and where the crossing is)
+    f0 = int(max(t0, t1-2.5)*fps); n = int(min(t1-t0+0.5, 2.8)*fps)
     cap = cv2.VideoCapture(vid); cap.set(1, f0); best = None
     for i in range(n):
         if not cap.grab():               # grab() is cheap; decode only every 3rd
