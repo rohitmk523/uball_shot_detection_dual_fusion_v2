@@ -80,15 +80,17 @@ def panel_right(points, cur, make, idx, n, gt, acc):
     dr.rounded_rectangle([RWp//2-190, 96, RWp//2+190, 214], radius=26, fill=vc)
     ct(dr, (RWp//2, 153), "MAKE" if make else "MISS", 72, (16, 17, 21))
     ct(dr, (RWp//2, 252), gt.replace("_", " "), 24, GREY)
-    # rim map (basket, top-down) — pushed down so top markers clear the title
-    cx, cy, R = RWp//2, 700, 270
+    # rim map (top-down): orange ring = the rim; each dot is the ball CENTER at
+    # its closest approach, plotted at its TRUE offset -> makes fall in/near
+    # center, misses land ON or OUTSIDE the rim at their real distance & angle.
+    cx, cy, R = RWp//2, 690, 180
     ct(dr, (cx, 322), "SHOT LOCATIONS", 28, WHITE)
-    dr.ellipse([cx-R-11, cy-R-11, cx+R+11, cy+R+11], outline=ORANGE, width=22)
-    dr.ellipse([cx-7, cy-7, cx+7, cy+7], fill=(70, 72, 80))
+    dr.ellipse([cx-R-9, cy-R-9, cx+R+9, cy+R+9], outline=ORANGE, width=18)
+    dr.ellipse([cx-6, cy-6, cx+6, cy+6], fill=(70, 72, 80))
     for i, (nx, ny, mk) in enumerate(points):
         if nx is None:               # ball not confidently seen at the rim -> no dot
             continue
-        px, py = int(cx+nx*R*0.92), int(cy+ny*R*0.92); hi = (i == cur)
+        px, py = int(cx+nx*R), int(cy+ny*R); hi = (i == cur)
         if hi:
             dr.ellipse([px-21, py-21, px+21, py+21], outline=WHITE, width=3)
         if mk:
@@ -116,23 +118,24 @@ def med_hoop(model, vid, dev, imgsz, ts):
 
 
 def near_cross(near, vid, dev, t0, t1, hoop, fps):
-    """Locate the ball's position AT the rim (the crossing), normalized to the
-    rim: (nx, ny) in rim-radii from the rim center. Dense per-frame scan in a
-    tight window near the play end; among ball detections in the rim
-    neighborhood, pick the one whose VERTICAL position is closest to the rim's
-    center line -> the ball at rim level. Left-right (nx) is reliable, so a
-    rim-out lands on the correct edge; front-back (ny) is depth-approximate.
+    """Mark the ball's CENTER at its closest approach to the rim during the
+    shot, normalized to rim-radii: (nx, ny) from the rim center. Dense
+    per-frame scan in a tight window near the play end; track the ball and keep
+    the frame where its center is nearest the rim center -> the real
+    crossing/contact point. A swish ~ (0,0); a shot that rims out close lands
+    just off center; a brick lands further out, at its true angle. Both makes
+    and misses spread naturally. Left-right is reliable; front-back is
+    depth-approximate.
 
-    Returns (nx, ny, t, ok). NO fake-center fallback: when the ball is never
-    confidently seen at the rim, ok=False (a soft last-seen position is returned
-    if any near-rim detection existed, else nx/ny=None) so the caller can drop
-    the dot instead of planting a misleading one at dead center."""
+    Returns (nx, ny, t, ok). NO fake-center fallback: if the ball is never
+    confidently seen near the rim, ok=False (nx/ny=None) so the caller drops the
+    dot rather than planting a misleading one at dead center."""
     cxr, cyr = (hoop[0]+hoop[2])/2, (hoop[1]+hoop[3])/2
     hw, hh = (hoop[2]-hoop[0])/2, (hoop[3]-hoop[1])/2
     # the ball reaches the rim near the play END -> tight window, every frame
     f0 = int(max(t0, t1-2.0)*fps); n = int(min(t1-t0+0.3, 2.3)*fps)
     cap = cv2.VideoCapture(vid); cap.set(1, f0)
-    best = None; last = None          # best = nearest rim level; last = most-recent near-rim
+    best = None                       # (dist2, nx, ny, t) closest approach to rim center
     for i in range(n):
         ok, fr = cap.read()
         if not ok:
@@ -143,17 +146,17 @@ def near_cross(near, vid, dev, t0, t1, hoop, fps):
                 continue
             b = [float(v) for v in x.xyxy[0]]
             nx = ((b[0]+b[2])/2 - cxr) / hw; ny = ((b[1]+b[3])/2 - cyr) / hh
-            if abs(nx) > 1.8 or ny < -1.4 or ny > 1.8:   # outside the rim neighborhood
+            if abs(nx) > 2.0 or abs(ny) > 2.0:           # detection far from the rim -> ignore
                 continue
-            t = (f0+i)/fps; last = (nx, ny, t)
-            if best is None or abs(ny) < abs(best[1]):   # closest to the rim's center line
-                best = (nx, ny, t)
+            d2 = nx*nx + ny*ny
+            if best is None or d2 < best[0]:
+                best = (d2, nx, ny, (f0+i)/fps)
     cap.release()
-    pick = best or last
-    if pick is None:
+    if best is None:
         return None, None, t1-0.6, False
-    nx, ny, t = pick
-    return float(np.clip(nx, -1.1, 1.1)), float(np.clip(ny, -1.1, 1.1)), t, (best is not None)
+    _, nx, ny, t = best
+    C = 1.6                                               # keep true offset; only reject outliers
+    return float(np.clip(nx, -C, C)), float(np.clip(ny, -C, C)), t, True
 
 
 def main():
