@@ -74,21 +74,17 @@ def label_bar(frame, text, make=None):
 
 def panel_right(points, cur, make, idx, n, gt, acc):
     im = Image.new("RGB", (RWp, RHp), BG); dr = ImageDraw.Draw(im)
-    ct(dr, (40, 46), "SHOT DETECTION", 32, WHITE, "lm")
     ct(dr, (RWp-40, 46), f"{idx}/{n}", 26, GREY, "rm")
     # verdict pill
     vc = GREEN if make else RED
     dr.rounded_rectangle([RWp//2-190, 96, RWp//2+190, 214], radius=26, fill=vc)
     ct(dr, (RWp//2, 153), "MAKE" if make else "MISS", 72, (16, 17, 21))
     ct(dr, (RWp//2, 252), gt.replace("_", " "), 24, GREY)
-    # rim map (basket, top-down)
-    cx, cy, R = RWp//2, 660, 270
+    # rim map (basket, top-down) — pushed down so top markers clear the title
+    cx, cy, R = RWp//2, 700, 270
+    ct(dr, (cx, 322), "SHOT LOCATIONS", 28, WHITE)
     dr.ellipse([cx-R-11, cy-R-11, cx+R+11, cy+R+11], outline=ORANGE, width=22)
     dr.ellipse([cx-7, cy-7, cx+7, cy+7], fill=(70, 72, 80))
-    ct(dr, (40, 372), "SHOT LOCATIONS", 28, WHITE, "lm")
-    ct(dr, (RWp-200, 372), "made", 22, GREEN, "lm"); dr.ellipse([RWp-232, 364, RWp-216, 380], fill=GREEN)
-    ct(dr, (RWp-105, 372), "miss", 22, RED, "lm")
-    dr.line([(RWp-135, 364), (RWp-121, 380)], fill=RED, width=4); dr.line([(RWp-135, 380), (RWp-121, 364)], fill=RED, width=4)
     for i, (nx, ny, mk) in enumerate(points):
         px, py = int(cx+nx*R*0.92), int(cy+ny*R*0.92); hi = (i == cur)
         if hi:
