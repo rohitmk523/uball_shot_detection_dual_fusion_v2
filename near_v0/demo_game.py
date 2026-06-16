@@ -188,11 +188,13 @@ def main():
     capN, capF = cv2.VideoCapture(a.near), cv2.VideoCapture(a.far)
     for j, s in enumerate(shots):
         t0 = s["t0"]; t1 = s["t1"]; mk = bool(s["pred_make"]); gi = start + j
-        nxn, nyn, tcross = near_cross(near, a.near, dev, t0, t1, nh, fps)
+        nxn, nyn, _ = near_cross(near, a.near, dev, t0, t1, nh, fps)  # position only
         pts.append((nxn, nyn, mk))
         right = panel_right(pts, gi, mk, gi+1, total, s["gt"], acc)
-        # short clip CENTERED on the actual rim crossing -> shot is visible + fast
-        cs = max(0.0, tcross - 1.8); nframes = int(a.clip * fps)
+        # clip anchored on the PLAY END (robust): the shot + result land near t1,
+        # so [t1-2.8, t1+0.6] reliably shows the complete shot (no crossing-detect)
+        cs = max(t0 - 0.3, t1 - 2.8); ce = t1 + 0.6
+        nframes = int((ce - cs) * fps)
         capN.set(1, int(cs*fps)); capF.set(1, int(cs*fps))
         fb, nb = [], []
         for fi in range(nframes):
