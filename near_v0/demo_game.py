@@ -86,6 +86,8 @@ def panel_right(points, cur, make, idx, n, gt, acc):
     dr.ellipse([cx-R-11, cy-R-11, cx+R+11, cy+R+11], outline=ORANGE, width=22)
     dr.ellipse([cx-7, cy-7, cx+7, cy+7], fill=(70, 72, 80))
     for i, (nx, ny, mk) in enumerate(points):
+        if nx is None:               # ball not confidently seen at the rim -> no dot
+            continue
         px, py = int(cx+nx*R*0.92), int(cy+ny*R*0.92); hi = (i == cur)
         if hi:
             dr.ellipse([px-21, py-21, px+21, py+21], outline=WHITE, width=3)
@@ -114,35 +116,44 @@ def med_hoop(model, vid, dev, imgsz, ts):
 
 
 def near_cross(near, vid, dev, t0, t1, hoop, fps):
-    """Scan the play window [t0,t1] (strided, cheap) for the ball's closest
-    approach to the rim center -> the rim CROSSING. Returns (norm_x, norm_y,
-    crossing_time). Fallback time = near the play end (where the shot lands)."""
+    """Locate the ball's position AT the rim (the crossing), normalized to the
+    rim: (nx, ny) in rim-radii from the rim center. Dense per-frame scan in a
+    tight window near the play end; among ball detections in the rim
+    neighborhood, pick the one whose VERTICAL position is closest to the rim's
+    center line -> the ball at rim level. Left-right (nx) is reliable, so a
+    rim-out lands on the correct edge; front-back (ny) is depth-approximate.
+
+    Returns (nx, ny, t, ok). NO fake-center fallback: when the ball is never
+    confidently seen at the rim, ok=False (a soft last-seen position is returned
+    if any near-rim detection existed, else nx/ny=None) so the caller can drop
+    the dot instead of planting a misleading one at dead center."""
     cxr, cyr = (hoop[0]+hoop[2])/2, (hoop[1]+hoop[3])/2
-    rimw, rimh = hoop[2]-hoop[0], hoop[3]-hoop[1]
-    # the shot reaches the rim near the play END -> search [t1-2.5, t1+0.3]
-    # (much cheaper than the whole play window, and where the crossing is)
-    f0 = int(max(t0, t1-2.5)*fps); n = int(min(t1-t0+0.5, 2.8)*fps)
-    cap = cv2.VideoCapture(vid); cap.set(1, f0); best = None
+    hw, hh = (hoop[2]-hoop[0])/2, (hoop[3]-hoop[1])/2
+    # the ball reaches the rim near the play END -> tight window, every frame
+    f0 = int(max(t0, t1-2.0)*fps); n = int(min(t1-t0+0.3, 2.3)*fps)
+    cap = cv2.VideoCapture(vid); cap.set(1, f0)
+    best = None; last = None          # best = nearest rim level; last = most-recent near-rim
     for i in range(n):
-        if not cap.grab():               # grab() is cheap; decode only every 3rd
-            break
-        if i % 3:
-            continue
-        ok, fr = cap.retrieve()
+        ok, fr = cap.read()
         if not ok:
-            continue
-        r = near.predict(fr, conf=0.3, imgsz=960, device=dev, verbose=False)[0]
+            break
+        r = near.predict(fr, conf=0.2, imgsz=960, device=dev, verbose=False)[0]
         for x in r.boxes:
             if int(x.cls[0]) != BALL:
                 continue
-            b = [float(v) for v in x.xyxy[0]]; bx, by = (b[0]+b[2])/2, (b[1]+b[3])/2
-            dd = (bx-cxr)**2+(by-cyr)**2
-            if best is None or dd < best[0]:
-                best = (dd, (bx-cxr)/(rimw/2), (by-cyr)/(rimh/2), (f0+i)/fps)
+            b = [float(v) for v in x.xyxy[0]]
+            nx = ((b[0]+b[2])/2 - cxr) / hw; ny = ((b[1]+b[3])/2 - cyr) / hh
+            if abs(nx) > 1.8 or ny < -1.4 or ny > 1.8:   # outside the rim neighborhood
+                continue
+            t = (f0+i)/fps; last = (nx, ny, t)
+            if best is None or abs(ny) < abs(best[1]):   # closest to the rim's center line
+                best = (nx, ny, t)
     cap.release()
-    if best is None:
-        return 0.0, 0.0, t1-0.6
-    return float(np.clip(best[1], -1.1, 1.1)), float(np.clip(best[2], -1.1, 1.1)), best[3]
+    pick = best or last
+    if pick is None:
+        return None, None, t1-0.6, False
+    nx, ny, t = pick
+    return float(np.clip(nx, -1.1, 1.1)), float(np.clip(ny, -1.1, 1.1)), t, (best is not None)
 
 
 def main():
@@ -184,8 +195,8 @@ def main():
     capN, capF = cv2.VideoCapture(a.near), cv2.VideoCapture(a.far)
     for j, s in enumerate(shots):
         t0 = s["t0"]; t1 = s["t1"]; mk = bool(s["pred_make"]); gi = start + j
-        nxn, nyn, _ = near_cross(near, a.near, dev, t0, t1, nh, fps)  # position only
-        pts.append((nxn, nyn, mk))
+        nxn, nyn, _, ok = near_cross(near, a.near, dev, t0, t1, nh, fps)  # rim-level position
+        pts.append((nxn, nyn, mk) if ok else (None, None, mk))  # no dot if not seen at rim
         right = panel_right(pts, gi, mk, gi+1, total, s["gt"], acc)
         # clip anchored on the PLAY END (robust): the shot + result land near t1,
         # so [t1-2.8, t1+0.6] reliably shows the complete shot (no crossing-detect)
