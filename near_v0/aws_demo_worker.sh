@@ -10,7 +10,13 @@ SRC=s3://uball-videos-production/court-a
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
   python3-pip ffmpeg libgl1 fonts-dejavu-core curl >/dev/null
-pip3 install -q awscli torch torchvision ultralytics opencv-python-headless pillow numpy 2>&1 | tail -1 || true
+# robust install: retry (torch pip can fail transiently); verify torch before proceeding
+for i in 1 2 3 4; do
+  pip3 install --retries 5 --timeout 180 -q \
+    awscli torch torchvision ultralytics opencv-python-headless pillow numpy && break
+  echo "pip attempt $i failed; retrying in 15s"; sleep 15
+done
+python3 -c "import torch" || { echo "FATAL: torch not installed after retries"; exit 1; }
 
 mkdir -p /work && cd /work
 aws s3 cp "$P/bundle.tar.gz" . >/dev/null
@@ -18,18 +24,35 @@ tar xzf bundle.tar.gz
 python3 -c "import torch;print('cuda',torch.cuda.is_available())"
 
 read GG DATE UUID T < <(grep "^$G " games.txt)
-echo "game $G  $DATE  $UUID  (both baskets)"
-for CAM in NR FR NL FL; do
-  aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_${CAM}.mp4" "/work/${CAM,,}.mp4" --only-show-errors
-done
+echo "game $G  $DATE  $UUID  (both baskets, disk-safe 2-pass)"
+TOTAL=$(python3 -c "import json;print(json.load(open('demo_data/$G.json'))['n'])")
+W=weights/near_det_v1_best.pt; FW=weights/far_v16_best.pt
+SEGS=()
 
-python3 near_v0/demo_game.py --game "$G" \
-  --nr /work/nr.mp4 --fr /work/fr.mp4 --nl /work/nl.mp4 --fl /work/fl.mp4 \
-  --shots "demo_data/$G.json" --out "/work/${G}_raw.mp4" \
-  --near-w weights/near_det_v1_best.pt --far-w weights/far_v16_best.pt
+# ---- RIGHT basket (NR + FR), then free the disk ----
+aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_NR.mp4" /work/nr.mp4 --only-show-errors
+aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_FR.mp4" /work/fr.mp4 --only-show-errors
+python3 near_v0/demo_game.py --game "$G" --basket RIGHT --near /work/nr.mp4 --far /work/fr.mp4 \
+  --shots "demo_data/$G.json" --out /work/right.mp4 --pts-out /work/pts.json --total "$TOTAL" \
+  --near-w "$W" --far-w "$FW"
+rm -f /work/nr.mp4 /work/fr.mp4
+[ -f /work/right.mp4 ] && SEGS+=(/work/right.mp4)
 
-ffmpeg -y -i "/work/${G}_raw.mp4" -c:v libx264 -pix_fmt yuv420p -crf 21 \
-  -movflags +faststart "/work/${G}_demo.mp4" 2>/dev/null
+# ---- LEFT basket (NL + FL), rim map continues from pts.json ----
+aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_NL.mp4" /work/nl.mp4 --only-show-errors
+aws s3 cp "$SRC/$DATE/$UUID/${DATE}_${UUID}_FL.mp4" /work/fl.mp4 --only-show-errors
+python3 near_v0/demo_game.py --game "$G" --basket LEFT --near /work/nl.mp4 --far /work/fl.mp4 \
+  --shots "demo_data/$G.json" --out /work/left.mp4 --pts-in /work/pts.json --total "$TOTAL" \
+  --near-w "$W" --far-w "$FW"
+rm -f /work/nl.mp4 /work/fl.mp4
+[ -f /work/left.mp4 ] && SEGS+=(/work/left.mp4)
+
+# ---- stitch the two baskets + h264 ----
+if [ ${#SEGS[@]} -eq 2 ]; then
+  ffmpeg -y -i /work/right.mp4 -i /work/left.mp4 -filter_complex "[0:v][1:v]concat=n=2:v=1[v]" \
+    -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 21 -movflags +faststart "/work/${G}_demo.mp4" 2>/dev/null
+else
+  ffmpeg -y -i "${SEGS[0]}" -c:v libx264 -pix_fmt yuv420p -crf 21 -movflags +faststart "/work/${G}_demo.mp4" 2>/dev/null
+fi
 aws s3 cp "/work/${G}_demo.mp4" "$P/out_both/${G}_demo.mp4" >/dev/null
-rm -f /work/nr.mp4 /work/fr.mp4 /work/nl.mp4 /work/fl.mp4
 echo "DEMO_DONE $G"

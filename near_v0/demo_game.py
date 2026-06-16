@@ -140,66 +140,68 @@ def near_cross(near, vid, dev, t, hoop, fps):
 
 
 def main():
+    # render ONE basket (disk-safe: only 2 videos needed at a time). The rim map
+    # carries over between baskets via --pts-in/--pts-out so the final stitched
+    # video accumulates both baskets.
     ap = argparse.ArgumentParser()
-    for k in ["game", "nr", "fr", "nl", "fl", "shots", "out", "near-w", "far-w"]:
+    for k in ["game", "near", "far", "basket", "shots", "out", "near-w", "far-w"]:
         ap.add_argument(f"--{k}", required=True)
-    ap.add_argument("--clip", type=float, default=2.6)
+    ap.add_argument("--pts-in", default=None); ap.add_argument("--pts-out", default=None)
+    ap.add_argument("--total", type=int, default=0); ap.add_argument("--clip", type=float, default=2.6)
     a = ap.parse_args()
     import torch
     from ultralytics import YOLO
     dev = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
     near = YOLO(getattr(a, "near_w")); far = YOLO(getattr(a, "far_w"))
-    data = json.load(open(a.shots)); shots = data["shots"]; acc = data.get("acc", 0)
-    nR = sum(s["basket"] == "RIGHT" for s in shots)
-    print(f"{a.game}: {len(shots)} shots (R={nR} L={len(shots)-nR}) near-acc {acc}")
+    data = json.load(open(a.shots)); acc = data.get("acc", 0)
+    shots = [s for s in data["shots"] if s["basket"] == a.basket]
+    total = a.total or len(data["shots"])
+    pts = json.load(open(getattr(a, "pts_in"))) if getattr(a, "pts_in") else []
+    start = len(pts)
+    print(f"{a.game} {a.basket}: {len(shots)} shots (start idx {start}/{total})", flush=True)
+    if not shots:
+        if getattr(a, "pts_out"):
+            json.dump(pts, open(getattr(a, "pts_out"), "w"))
+        print("DONE (no shots this basket)"); return
 
-    fps = cv2.VideoCapture(a.nr).get(5) or 29.97
-    # per-basket camera config: (near_vid, far_vid, near_hoop, far_hoop, n_center, f_center)
-    cfg = {}
-    for bk, nv, fv in [("RIGHT", a.nr, a.fr), ("LEFT", a.nl, a.fl)]:
-        bs = [s for s in shots if s["basket"] == bk]
-        if not bs:
-            continue
-        ts = np.linspace(bs[0]["t0"], bs[-1]["t0"], 8)
-        nh = med_hoop(near, nv, dev, 960, ts); fh = med_hoop(far, fv, dev, 1280, ts)
-        if nh is None or fh is None:
-            print(f"WARN: no hoop for {bk}, skipping that basket"); continue
-        cfg[bk] = dict(nv=nv, fv=fv, nh=nh, fh=fh,
-                       nc=((nh[0]+nh[2])/2, (nh[1]+nh[3])/2 - 40),
-                       fc=((fh[0]+fh[2])/2, (fh[1]+fh[3])/2 - 80),
-                       capN=cv2.VideoCapture(nv), capF=cv2.VideoCapture(fv))
-        print(f"  {bk}: near {[round(v) for v in nh]} far {[round(v) for v in fh]}")
-    shots = [s for s in shots if s["basket"] in cfg]
+    fps = cv2.VideoCapture(a.near).get(5) or 29.97
+    ts = np.linspace(shots[0]["t0"], shots[-1]["t0"], 8)
+    nh = med_hoop(near, a.near, dev, 960, ts); fh = med_hoop(far, a.far, dev, 1280, ts)
+    if nh is None or fh is None:
+        print("ERROR: no hoop"); return
+    n_cx, n_cy = (nh[0]+nh[2])/2, (nh[1]+nh[3])/2 - 40
+    f_cx, f_cy = (fh[0]+fh[2])/2, (fh[1]+fh[3])/2 - 80
+    bktag = f"{a.basket} BASKET"
+    print(f"  near {[round(v) for v in nh]} far {[round(v) for v in fh]}", flush=True)
 
-    pts = []
     vw = cv2.VideoWriter(a.out, cv2.VideoWriter_fourcc(*"mp4v"), 24, (1920, 1080))
-    for i, s in enumerate(shots):
-        t = s["t0"]; mk = bool(s["pred_make"]); c = cfg[s["basket"]]
-        nxn, nyn = near_cross(near, c["nv"], dev, t, c["nh"], fps)
+    capN, capF = cv2.VideoCapture(a.near), cv2.VideoCapture(a.far)
+    for j, s in enumerate(shots):
+        t = s["t0"]; mk = bool(s["pred_make"]); gi = start + j
+        nxn, nyn = near_cross(near, a.near, dev, t, nh, fps)
         pts.append((nxn, nyn, mk))
-        right = panel_right(pts, i, mk, i+1, len(shots), s["gt"], acc)
-        bktag = "RIGHT BASKET" if s["basket"] == "RIGHT" else "LEFT BASKET"
-        c["capN"].set(1, int((t-a.clip*0.55)*fps)); c["capF"].set(1, int((t-a.clip*0.55)*fps))
+        right = panel_right(pts, gi, mk, gi+1, total, s["gt"], acc)
+        capN.set(1, int((t-a.clip*0.55)*fps)); capF.set(1, int((t-a.clip*0.55)*fps))
         for _ in range(int(a.clip*fps)):
-            okn, frn = c["capN"].read(); okf, frf = c["capF"].read()
+            okn, frn = capN.read(); okf, frf = capF.read()
             if not (okn and okf):
                 break
             rF = far.predict(frf, conf=0.25, imgsz=1280, device=dev, verbose=False)[0]
             fb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rF.boxes]
-            fcrop, fx0, fy0, fw, fh = crop_aspect(frf, c["fc"][0], c["fc"][1], 540)
-            fc = cv2.resize(fcrop, (VW, VH)); draw_boxes(fc, fb, fx0, fy0, VW/fw, VH/fh)
+            fcrop, fx0, fy0, fw, fh2 = crop_aspect(frf, f_cx, f_cy, 540)
+            fc = cv2.resize(fcrop, (VW, VH)); draw_boxes(fc, fb, fx0, fy0, VW/fw, VH/fh2)
             fc = label_bar(fc, f"FAR ANGLE  ·  {bktag}")
             rN = near.predict(frn, conf=0.30, imgsz=960, device=dev, verbose=False)[0]
             nb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rN.boxes]
-            ncrop, nx0, ny0, nw, nh = crop_aspect(frn, c["nc"][0], c["nc"][1], 470)
-            nc = cv2.resize(ncrop, (VW, VH)); draw_boxes(nc, nb, nx0, ny0, VW/nw, VH/nh)
+            ncrop, nx0, ny0, nw, nh2 = crop_aspect(frn, n_cx, n_cy, 470)
+            nc = cv2.resize(ncrop, (VW, VH)); draw_boxes(nc, nb, nx0, ny0, VW/nw, VH/nh2)
             nc = label_bar(nc, f"NEAR ANGLE  ·  {bktag}", make=mk)
             vw.write(np.hstack([np.vstack([fc, nc]), right]))
-        if (i+1) % 25 == 0:
-            print(f"  {i+1}/{len(shots)} rendered", flush=True)
-    for c in cfg.values():
-        c["capN"].release(); c["capF"].release()
-    vw.release()
+        if (j+1) % 25 == 0:
+            print(f"  {j+1}/{len(shots)} {a.basket} rendered", flush=True)
+    capN.release(); capF.release(); vw.release()
+    if getattr(a, "pts_out"):
+        json.dump(pts, open(getattr(a, "pts_out"), "w"))
     print(f"DONE -> {a.out}")
 
 
