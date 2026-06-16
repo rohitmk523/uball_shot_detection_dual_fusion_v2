@@ -10,13 +10,21 @@ SRC=s3://uball-videos-production/court-a
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
   python3-pip ffmpeg libgl1 fonts-dejavu-core curl >/dev/null
-# robust install: retry (torch pip can fail transiently); verify torch before proceeding
+# robust install: retry (torch pip can fail transiently); verify torch before proceeding.
+# Pin torch to a CUDA 12.1 build: the default wheel is now cu128 and needs a newer
+# driver than these instances have (driver=12.4), which silently drops to CPU.
 for i in 1 2 3 4; do
   pip3 install --retries 5 --timeout 180 -q \
-    awscli torch torchvision ultralytics opencv-python-headless pillow numpy && break
-  echo "pip attempt $i failed; retrying in 15s"; sleep 15
+    torch torchvision --index-url https://download.pytorch.org/whl/cu121 && break
+  echo "torch pip attempt $i failed; retrying in 15s"; sleep 15
+done
+for i in 1 2 3 4; do
+  pip3 install --retries 5 --timeout 180 -q \
+    awscli ultralytics opencv-python-headless pillow numpy && break
+  echo "deps pip attempt $i failed; retrying in 15s"; sleep 15
 done
 python3 -c "import torch" || { echo "FATAL: torch not installed after retries"; exit 1; }
+python3 -c "import torch;print('CUDA available:', torch.cuda.is_available())"
 
 mkdir -p /work && cd /work
 aws s3 cp "$P/bundle.tar.gz" . >/dev/null
