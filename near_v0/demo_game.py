@@ -118,15 +118,21 @@ def med_hoop(model, vid, dev, imgsz, ts):
 
 
 def near_cross(near, vid, dev, t0, t1, hoop, fps):
-    """detected ball center at the rim crossing (closest approach to rim center
-    across the whole play window [t0,t1]), normalized to the rim box."""
+    """Scan the play window [t0,t1] (strided, cheap) for the ball's closest
+    approach to the rim center -> the rim CROSSING. Returns (norm_x, norm_y,
+    crossing_time). Fallback time = near the play end (where the shot lands)."""
     cxr, cyr = (hoop[0]+hoop[2])/2, (hoop[1]+hoop[3])/2
     rimw, rimh = hoop[2]-hoop[0], hoop[3]-hoop[1]
-    cap = cv2.VideoCapture(vid); cap.set(1, int((t0-0.3)*fps)); best = None
-    for _ in range(int((t1-t0+1.0)*fps)):
-        ok, fr = cap.read()
-        if not ok:
+    f0 = int((t0-0.3)*fps); n = int((t1-t0+0.8)*fps)
+    cap = cv2.VideoCapture(vid); cap.set(1, f0); best = None
+    for i in range(n):
+        if not cap.grab():               # grab() is cheap; decode only every 3rd
             break
+        if i % 3:
+            continue
+        ok, fr = cap.retrieve()
+        if not ok:
+            continue
         r = near.predict(fr, conf=0.3, imgsz=960, device=dev, verbose=False)[0]
         for x in r.boxes:
             if int(x.cls[0]) != BALL:
@@ -134,9 +140,11 @@ def near_cross(near, vid, dev, t0, t1, hoop, fps):
             b = [float(v) for v in x.xyxy[0]]; bx, by = (b[0]+b[2])/2, (b[1]+b[3])/2
             dd = (bx-cxr)**2+(by-cyr)**2
             if best is None or dd < best[0]:
-                best = (dd, (bx-cxr)/(rimw/2), (by-cyr)/(rimh/2))
+                best = (dd, (bx-cxr)/(rimw/2), (by-cyr)/(rimh/2), (f0+i)/fps)
     cap.release()
-    return (0.0, 0.0) if best is None else (float(np.clip(best[1], -1.1, 1.1)), float(np.clip(best[2], -1.1, 1.1)))
+    if best is None:
+        return 0.0, 0.0, t1-0.6
+    return float(np.clip(best[1], -1.1, 1.1)), float(np.clip(best[2], -1.1, 1.1)), best[3]
 
 
 def main():
@@ -178,23 +186,26 @@ def main():
     capN, capF = cv2.VideoCapture(a.near), cv2.VideoCapture(a.far)
     for j, s in enumerate(shots):
         t0 = s["t0"]; t1 = s["t1"]; mk = bool(s["pred_make"]); gi = start + j
-        nxn, nyn = near_cross(near, a.near, dev, t0, t1, nh, fps)
+        nxn, nyn, tcross = near_cross(near, a.near, dev, t0, t1, nh, fps)
         pts.append((nxn, nyn, mk))
         right = panel_right(pts, gi, mk, gi+1, total, s["gt"], acc)
-        # show the FULL play window so the ball-through-rim is always visible
-        cs = t0 - 0.3; nframes = int((t1 - t0 + 1.0) * fps)
+        # short clip CENTERED on the actual rim crossing -> shot is visible + fast
+        cs = max(0.0, tcross - 1.8); nframes = int(a.clip * fps)
         capN.set(1, int(cs*fps)); capF.set(1, int(cs*fps))
-        for _ in range(nframes):
+        fb, nb = [], []
+        for fi in range(nframes):
             okn, frn = capN.read(); okf, frf = capF.read()
             if not (okn and okf):
                 break
-            rF = far.predict(frf, conf=0.25, imgsz=1280, device=dev, verbose=False)[0]
-            fb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rF.boxes]
+            if fi % 2 == 0:              # detect every other frame, reuse boxes
+                rF = far.predict(frf, conf=0.25, imgsz=1280, device=dev, verbose=False)[0]
+                fb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rF.boxes]
             fcrop, fx0, fy0, fw, fh2 = crop_aspect(frf, f_cx, f_cy, 540)
             fc = cv2.resize(fcrop, (VW, VH)); draw_boxes(fc, fb, fx0, fy0, VW/fw, VH/fh2)
             fc = label_bar(fc, f"FAR ANGLE  ·  {bktag}")
-            rN = near.predict(frn, conf=0.30, imgsz=960, device=dev, verbose=False)[0]
-            nb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rN.boxes]
+            if fi % 2 == 0:
+                rN = near.predict(frn, conf=0.30, imgsz=960, device=dev, verbose=False)[0]
+                nb = [(int(b.cls[0]), [float(v) for v in b.xyxy[0]]) for b in rN.boxes]
             ncrop, nx0, ny0, nw, nh2 = crop_aspect(frn, n_cx, n_cy, 470)
             nc = cv2.resize(ncrop, (VW, VH)); draw_boxes(nc, nb, nx0, ny0, VW/nw, VH/nh2)
             nc = label_bar(nc, f"NEAR ANGLE  ·  {bktag}", make=mk)
