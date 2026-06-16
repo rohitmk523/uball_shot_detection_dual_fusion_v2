@@ -117,13 +117,13 @@ def med_hoop(model, vid, dev, imgsz, ts):
     return np.median(np.array(hs), 0) if hs else None
 
 
-def near_cross(near, vid, dev, t, hoop, fps):
-    """detected ball center at the rim crossing (closest approach to rim center),
-    normalized to the rim box -> position on the rim map."""
+def near_cross(near, vid, dev, t0, t1, hoop, fps):
+    """detected ball center at the rim crossing (closest approach to rim center
+    across the whole play window [t0,t1]), normalized to the rim box."""
     cxr, cyr = (hoop[0]+hoop[2])/2, (hoop[1]+hoop[3])/2
     rimw, rimh = hoop[2]-hoop[0], hoop[3]-hoop[1]
-    cap = cv2.VideoCapture(vid); cap.set(1, int((t-0.8)*fps)); best = None
-    for _ in range(int(1.8*fps)):
+    cap = cv2.VideoCapture(vid); cap.set(1, int((t0-0.3)*fps)); best = None
+    for _ in range(int((t1-t0+1.0)*fps)):
         ok, fr = cap.read()
         if not ok:
             break
@@ -177,12 +177,14 @@ def main():
     vw = cv2.VideoWriter(a.out, cv2.VideoWriter_fourcc(*"mp4v"), 24, (1920, 1080))
     capN, capF = cv2.VideoCapture(a.near), cv2.VideoCapture(a.far)
     for j, s in enumerate(shots):
-        t = s["t0"]; mk = bool(s["pred_make"]); gi = start + j
-        nxn, nyn = near_cross(near, a.near, dev, t, nh, fps)
+        t0 = s["t0"]; t1 = s["t1"]; mk = bool(s["pred_make"]); gi = start + j
+        nxn, nyn = near_cross(near, a.near, dev, t0, t1, nh, fps)
         pts.append((nxn, nyn, mk))
         right = panel_right(pts, gi, mk, gi+1, total, s["gt"], acc)
-        capN.set(1, int((t-a.clip*0.55)*fps)); capF.set(1, int((t-a.clip*0.55)*fps))
-        for _ in range(int(a.clip*fps)):
+        # show the FULL play window so the ball-through-rim is always visible
+        cs = t0 - 0.3; nframes = int((t1 - t0 + 1.0) * fps)
+        capN.set(1, int(cs*fps)); capF.set(1, int(cs*fps))
+        for _ in range(nframes):
             okn, frn = capN.read(); okf, frf = capF.read()
             if not (okn and okf):
                 break
