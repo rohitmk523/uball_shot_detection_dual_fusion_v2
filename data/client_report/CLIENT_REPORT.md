@@ -174,3 +174,26 @@ In a controlled head-to-head on **1,357 shots**, fusing the new near model lifte
 **What this means:** on the existing 4-camera setup, the software ceiling has moved from **~0.951 to ~0.965–0.973** — roughly a third of the prior error removed — at **$0 added hardware**. The path to near-perfect still runs through the §6 capture upgrades (sync, linear mode, faster shutter, and ultimately the overhead rim-axis camera), but the new near model is a real, immediate gain on footage we already have.
 
 *Demo videos (per game, far + near detection + make/miss + shot-location map) accompany this update.*
+
+---
+
+## UPDATE — 2026-06-19: Detector swap — **RF-DETR vs YOLO** (Apache vs AGPL), same fusion pipeline
+
+We evaluated replacing the **YOLO11n** ball+hoop detectors (AGPL-licensed) with **RF-DETR** (Apache-2.0) on **both** angles, keeping the rest of the v2 pipeline identical (same spotter, same near rim-crop classifier, same far trajectory/geometry features, same leave-one-game-out fusion). RF-DETR detectors were trained on the same held-out splits (near test mAP@50 0.94, ball-recall-at-rim 0.90 vs YOLO 0.83; far ball recall 0.90 vs 0.79).
+
+**Apples-to-apples on the same 9 games / 1,364 shots** (both detectors run through one reconstructed LOGO pipeline; YOLO reconstruction = 0.969 vs the cached 0.973, so absolutes are ~0.4pt conservative — the **delta** is the trustworthy number):
+
+| make/miss accuracy | YOLO | **RF-DETR** | Δ |
+|---|---:|---:|---:|
+| **Far camera alone** | 0.945 (FP 38, **FN 37**) | **0.971** (FP 26, **FN 14**) | **+2.6 pt** |
+| **Near camera alone** | 0.970 | 0.970 | tie (classifier-bound) |
+| **Far+near fusion** | 0.969 (FP 24, FN 19) | **0.975** (FP 20, FN 14) | **+0.66 pt** |
+
+Per-game fusion: RF-DETR **wins 6, ties 2, loses 1** (range −0.6 to +2.5 pt).
+
+**Findings:**
+- **RF-DETR roughly halves far-side false-negatives (37 → 14)** — its cleaner, denser trajectory makes the far "did the ball pass through the hoop" line-intersection more reliable, catching made baskets the YOLO trajectory dropped. That gain carries into the fusion (**fewer FP *and* FN**).
+- **The near angle is detector-invariant** — near make/miss is decided by the rim-crop *classifier*; both detectors locate the rim at ~1.0 recall, so the detector doesn't move it.
+- **Net: a modest but consistent fusion gain (+0.66 pt) plus a clearly stronger far angle**, on top of a **permissive Apache-2.0 license** (vs YOLO's AGPL-3.0, which is restrictive for commercial/networked deployment).
+
+**Recommendation:** RF-DETR is a viable, **better-licensed** drop-in that **holds or slightly improves** fused accuracy and **meaningfully strengthens the far angle** (valuable when the near view is occluded or down-weighted). The remaining ceiling is still the **depth illusion** (§2) — a geometry problem no detector fixes; the path past it remains capture-side (sync → triangulation, §4–5).
