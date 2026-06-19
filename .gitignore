@@ -18,3 +18,16 @@ __pycache__/
 .venv/
 .DS_Store
 data/client_report/error_highlights/*.mp4
+
+# bulky binary data dirs (regenerable from S3/pipeline) — not version-controlled
+data/crops/
+data/near_rimcrop/
+data/client_report/triangulation_test/
+data/near_detector/demo/
+data/near_detector/near_rimcrop/
+data/near_detector/spotter_cache/
+*.png
+*.jpg
+*.jpeg
+*.csv
+# triangulation CODE is kept (pipeline/*.py); only its data above is dropped
