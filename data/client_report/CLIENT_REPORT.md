@@ -189,7 +189,22 @@ We evaluated replacing the **YOLO11n** ball+hoop detectors (AGPL-licensed) with 
 | **Near camera alone** | 0.970 | 0.970 | tie (classifier-bound) |
 | **Far+near fusion** | 0.969 (FP 24, FN 19) | **0.975** (FP 20, FN 14) | **+0.66 pt** |
 
-Per-game fusion: RF-DETR **wins 6, ties 2, loses 1** (range −0.6 to +2.5 pt).
+**Per-game fusion accuracy** (RF-DETR **wins 6, ties 2, loses 1**; FP = miss→make, FN = make→miss):
+
+| game | shots | YOLO fusion | **RF-DETR fusion** | Δ | RF-DETR FP / FN |
+|---|---:|---:|---:|---:|---:|
+| 29b51d57 | 164 | 0.988 | 0.982 | −0.6 | 3 / 0 |
+| 2c490f1a | 118 | 0.958 | **0.983** | +2.5 | 1 / 1 |
+| 74c4f686 | 147 | 0.966 | 0.966 | 0.0 | 2 / 3 |
+| 8dcb1330 | 167 | 0.970 | **0.976** | +0.6 | 1 / 3 |
+| 922bff3b | 137 | 0.985 | **0.993** | +0.8 | 1 / 0 |
+| 9eb51980 | 160 | 0.950 | **0.956** | +0.6 | 4 / 3 |
+| d0a9faef | 142 | 0.958 | **0.972** | +1.4 | 3 / 1 |
+| d446fe8c | 169 | 0.976 | **0.988** | +1.2 | 2 / 0 |
+| f66eb3b2 | 160 | 0.963 | 0.963 | 0.0 | 3 / 3 |
+| **OVERALL** | **1364** | **0.969** | **0.975** | **+0.66** | **20 / 14** |
+
+(Near-solo is ~0.97 and detector-invariant on every game; the per-game spread above is driven by the far angle, where RF-DETR is stronger.)
 
 **Findings:**
 - **RF-DETR roughly halves far-side false-negatives (37 → 14)** — its cleaner, denser trajectory makes the far "did the ball pass through the hoop" line-intersection more reliable, catching made baskets the YOLO trajectory dropped. That gain carries into the fusion (**fewer FP *and* FN**).
@@ -197,3 +212,16 @@ Per-game fusion: RF-DETR **wins 6, ties 2, loses 1** (range −0.6 to +2.5 pt).
 - **Net: a modest but consistent fusion gain (+0.66 pt) plus a clearly stronger far angle**, on top of a **permissive Apache-2.0 license** (vs YOLO's AGPL-3.0, which is restrictive for commercial/networked deployment).
 
 **Recommendation:** RF-DETR is a viable, **better-licensed** drop-in that **holds or slightly improves** fused accuracy and **meaningfully strengthens the far angle** (valuable when the near view is occluded or down-weighted). The remaining ceiling is still the **depth illusion** (§2) — a geometry problem no detector fixes; the path past it remains capture-side (sync → triangulation, §4–5).
+
+We also re-tested **disagreement-aware fusion** (when the two cameras strongly disagree, trust the more reliable one) — four variants, all leave-one-game-out (max-confidence, asymmetric far→near, LOGO logistic stack, LOGO tuned weight). **None beat the simple mean-blend (0.975)**, and most hurt the weakest games. Reason: the disagreement errors go *both* ways (sometimes far is wrong, sometimes near), and the depth illusion fools *both* cameras *confidently* — so there is no reliable signal for *which* camera to trust. The mean-blend is already optimal; the tie-breaker has to come from new information (3D), not a smarter weighting.
+
+### What triangulation needs (the route to ~99%)
+
+Triangulation — recovering the ball's **true 3D position** from 2+ synced, calibrated cameras — turns "through vs in front of the rim" into a *measurement* and dissolves the depth illusion. It is **not** part of the current fusion (the 0.975 is pure 2D); a prototype exists (`pipeline/triangulate_shot.py`, ~84% standalone) but isn't shipped. To make it production-grade we need, in priority order:
+
+1. **Sub-frame time sync (the blocker).** Current cameras are NTP wall-clock aligned (~0.3–0.5 s), and post-hoc audio/event sync is **σ 30–77 frames** per shot — the median is right, but no single shot is aligned to the **< 1 frame** triangulation needs (a ball at 8 m/s moves ~27 cm per 30 fps frame). → **hardware timecode/genlock**, or a sharp **sync flash/clap at recording**, or **60–120 fps** to shrink per-frame motion.
+2. **Linear capture mode (not SuperView).** SuperView is heavily distorted and effectively un-calibratable; Linear is a prerequisite for any lens calibration.
+3. **Intrinsic calibration** — each camera's focal length + lens distortion, from a one-time **checkerboard** (or exact GoPro model/mode/resolution). The prototype used FOV *guesses* (FR 73°, NR 92°) → ~11–18 px reprojection error.
+4. **Extrinsic calibration (pose)** — accurate **court + rim pixel↔world correspondences** per camera (click/detect 6+ known points) plus the **rim's exact 3D position**.
+
+**What we already have vs. need:** ✅ court measurements (the world-coordinate side of pose) and ⚠️ coarse audio sync are a real head start — but neither replaces the two true unlocks: **capture-time sub-frame sync** and **Linear-mode + checkerboard calibration**. Those two are what move triangulation from ~84% standalone to the measured-depth ~99% path.
