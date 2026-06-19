@@ -30,4 +30,20 @@ data/near_detector/spotter_cache/
 *.jpg
 *.jpeg
 *.csv
+# more data/output dirs that were never committed (the "10k pending" culprits)
+data/near_detector/labels/
+data/near_detector/aws_out/
+data/near_detector/review_clips/
+data/near_detector/frames/
+data/near_detector/overlays/
+data/near_detector/camera_mode_check/
+data/near_detector/e2e_v2/
+data/near_detector/e2e_v2f/
+data/client_report/near_angle/phase0/
+data/client_report/calib_freethrow/
+data/client_report/fresh_error_reel/
+data/client_report/error_highlights*/
+data/client_report/validation_sync/
+data/client_report/mode_probe/
+data/reports/
 # triangulation CODE is kept (pipeline/*.py); only its data above is dropped
