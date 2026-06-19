@@ -192,6 +192,41 @@
    "makes": 71,
    "misses": 51,
    "split": "train"
+  },
+  {
+   "game_id": "77715f25-bf6e-4986-824b-b72285eef534",
+   "s3_prefix": "court-a/2026-05-19/77715f25-bf6e-4986-824b/",
+   "date": "2026-05-19",
+   "shots": 0,
+   "split": "fresh"
+  },
+  {
+   "game_id": "b3c1f62c-1a02-47c9-8d2a-4e05a27dc14d",
+   "s3_prefix": "court-a/2026-05-16/b3c1f62c-1a02-47c9-8d2a/",
+   "date": "2026-05-16",
+   "shots": 0,
+   "split": "fresh"
+  },
+  {
+   "game_id": "cc1710c4-ddac-44ef-9e78-97decf005754",
+   "s3_prefix": "court-a/2026-05-19/cc1710c4-ddac-44ef-9e78/",
+   "date": "2026-05-19",
+   "shots": 0,
+   "split": "fresh"
+  },
+  {
+   "game_id": "cc5deb39-71de-4ea9-b3a2-eaba15bdcc6b",
+   "s3_prefix": "court-a/2026-05-19/cc5deb39-71de-4ea9-b3a2/",
+   "date": "2026-05-19",
+   "shots": 0,
+   "split": "fresh"
+  },
+  {
+   "game_id": "f3e7b25a-430a-4b37-aa80-d5593124cc51",
+   "s3_prefix": "court-a/2026-05-16/f3e7b25a-430a-4b37-aa80/",
+   "date": "2026-05-16",
+   "shots": 0,
+   "split": "fresh"
   }
  ]
 }

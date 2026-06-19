@@ -38,6 +38,15 @@ SUPABASE_URL="__SUPABASE_URL__"
 SUPABASE_SERVICE_ROLE_KEY="__SUPABASE_SERVICE_ROLE_KEY__"
 UPLOAD_BUCKET="__UPLOAD_BUCKET__"
 AWS_REGION="__AWS_REGION__"
+GT_WINDOWS_S3="__GT_WINDOWS_S3__"               # optional GT override (e.g. fresh games)
+# If launched by an older launcher the placeholder is left intact; treat that
+# (and empty) as "no override". The literal token below is split with "" so
+# launch_p1.sh's subst() global replace of __GT_WINDOWS_S3__ canNOT rewrite
+# THIS guard (the earlier bug: the guard matched the real value and blanked
+# the override, silently falling back to the default GT).
+if [ "$GT_WINDOWS_S3" = "__GT_WINDOWS""_S3__" ] || [ -z "$GT_WINDOWS_S3" ]; then
+  GT_WINDOWS_S3=""
+fi
 
 WORK=/opt/p1
 LOG=/var/log/p1_bootstrap.log
@@ -142,6 +151,9 @@ export GIT_SHA="$RUN_ID"
 # (the bug that made far_v16 a no-op: pipeline used its hardcoded default).
 export FROZEN_BUNDLE_S3="$FROZEN_BUNDLE_S3"
 export FROZEN_BUNDLE_SHA_S3="$FROZEN_BUNDLE_SHA_S3"
+# Optional GT override (fresh out-of-sample games). Only export if set, else
+# the pipeline uses its default gt_windows.json.
+[ -n "$GT_WINDOWS_S3" ] && export GT_WINDOWS_S3 GT_WINDOWS_SHA_S3="${GT_WINDOWS_S3}.sha256"
 
 cd "$WORK/repo/pipeline" || cd "$WORK/repo"
 echo "[p1] starting $P1_ENTRY $GAME_ARGS (phase=$PHASE)"

@@ -232,6 +232,9 @@ subst SUPABASE_URL              "${SUPABASE_URL:-}"
 subst SUPABASE_SERVICE_ROLE_KEY "${SUPABASE_SERVICE_ROLE_KEY:-}"
 subst UPLOAD_BUCKET             "$UPLOAD_BUCKET"
 subst AWS_REGION                "$REGION"
+# Optional GT override (fresh out-of-sample games). Empty => bootstrap leaves
+# GT_WINDOWS_S3 unset and the pipeline uses its default gt_windows.json.
+subst GT_WINDOWS_S3             "${P1_GT_WINDOWS:-}"
 
 echo "[stage] user-data rendered ($(wc -c <"$UD") bytes)"
 
