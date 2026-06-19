@@ -33,16 +33,27 @@ S3_GAMES = {
     "6d601c99": ("2026-04-18", "6d601c99-9173-445f-a647"),
     "c2a354fe": ("2026-03-19", "c2a354fe-eb34-4980-af00"),
 }
+_extra = ROOT / "data/s3_games_extra.json"
+if _extra.exists():
+    S3_GAMES.update({k: tuple(v) for k, v in json.loads(_extra.read_text()).items()})
+
 FPS = 29.97
 PAD_BEFORE = 1.0
 PAD_AFTER = 2.5
 
 
 def presign(s3_url: str, expires: int = 7200) -> str:
-    r = subprocess.run(["aws", "s3", "presign", s3_url,
-                        "--expires-in", str(expires)],
-                       check=True, capture_output=True, text=True)
-    return r.stdout.strip()
+    try:
+        r = subprocess.run(["aws", "s3", "presign", s3_url,
+                            "--expires-in", str(expires)],
+                           check=True, capture_output=True, text=True)
+        return r.stdout.strip()
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        import boto3                      # container fallback (no awscli)
+        bucket, key = s3_url.replace("s3://", "").split("/", 1)
+        return boto3.client("s3").generate_presigned_url(
+            "get_object", Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=expires)
 
 
 def is_good(p: Path) -> bool:

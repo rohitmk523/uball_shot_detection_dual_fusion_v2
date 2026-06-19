@@ -28,6 +28,7 @@ BASE = ("/Users/rohitkale/Cellstrat/GitHub_Repositories/"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--resume", action="store_true")
     ap.add_argument("--data", default=str(DATA))
     ap.add_argument("--base", default=BASE)
     ap.add_argument("--project", default=str(NA.parent / "runs"))
@@ -45,6 +46,16 @@ def main():
     import os
     nw = int(os.environ.get("NW", "0"))
     print(f"device={dev} base={base} data={args.data} workers={nw}")
+
+    if args.resume:
+        checkpoint_path = Path(args.project) / "near-det-v1/weights/last.pt"
+        if not checkpoint_path.exists():
+            checkpoint_path = Path(base)
+        print(f"Resuming training from checkpoint: {checkpoint_path}")
+        model = YOLO(str(checkpoint_path))
+        model.train(resume=True, workers=nw)
+        print("TRAIN_DONE")
+        return
 
     model = YOLO(base)
     common = dict(data=args.data, device=dev, project=args.project,

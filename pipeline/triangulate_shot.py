@@ -32,8 +32,13 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 FR_VIDEO = ROOT / "data/client_report/triangulation_test/5a5f1aae_FR_5min.mp4"
 NR_VIDEO = ROOT / "data/client_report/triangulation_test/5a5f1aae_NR_5min.mp4"
 
-FR_WEIGHTS = Path("/Users/rohitkale/Cellstrat/GitHub_Repositories/Training_frameworks/Uball Far Angle/deliverables/far_v16_best.pt")
-NR_WEIGHTS = Path("/Users/rohitkale/Cellstrat/GitHub_Repositories/Uball_dual_angle_shot_detection/weights/near_angle_weights/basketball_yolo11n3/weights/best.pt")
+import os as _os
+FR_WEIGHTS = Path(_os.environ.get(
+    "FR_WEIGHTS",
+    "/Users/rohitkale/Cellstrat/GitHub_Repositories/Training_frameworks/Uball Far Angle/deliverables/far_v16_best.pt"))
+NR_WEIGHTS = Path(_os.environ.get(
+    "NR_WEIGHTS",
+    "/Users/rohitkale/Cellstrat/GitHub_Repositories/Uball_dual_angle_shot_detection/weights/near_angle_weights/basketball_yolo11n3/weights/best.pt"))
 
 # NR hoop bbox (from v4 calibration on this game's calibration frame). NR sees
 # the rim near the bottom of the frame. We use this to detect "ball bounced up

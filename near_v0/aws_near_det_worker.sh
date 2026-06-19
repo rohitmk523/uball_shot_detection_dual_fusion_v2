@@ -6,9 +6,12 @@ set -euo pipefail
 GID="$1"
 S3BASE=s3://uball-videos-production/_tmp_tri/near_det
 
-apt-get update -qq >/dev/null 2>&1 || true
-apt-get install -y -qq ffmpeg libgl1 >/dev/null 2>&1 || true
-pip install -q --no-input transformers pillow numpy awscli 2>/dev/null | tail -1 || true
+# Base image is bare nvcr.io/nvidia/cuda runtime: no python/pip preinstalled.
+apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+  python3-pip ffmpeg libgl1 curl >/dev/null
+pip3 install -q awscli
+pip3 install -q torch transformers pillow numpy 2>&1 | tail -1 || true
 
 mkdir -p /work && cd /work
 aws s3 cp "$S3BASE/bundle.tar.gz" . >/dev/null
