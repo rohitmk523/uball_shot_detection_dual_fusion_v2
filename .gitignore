@@ -47,3 +47,7 @@ data/client_report/validation_sync/
 data/client_report/mode_probe/
 data/reports/
 # triangulation CODE is kept (pipeline/*.py); only its data above is dropped
+
+# exploratory near-angle probes + stale single result
+data/client_report/near_angle/
+data/near_detector/e2e_*.json
